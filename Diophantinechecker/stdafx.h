@@ -7,16 +7,11 @@
 
 #include "targetver.h"
 
+#include <stdio.h>
 #include <tchar.h>
 #include <iostream>
-#include <vector>
+#include <cstring>
 #include <string>
-#include <cassert>
-#include <exception>
-#include <csignal>
-#include "mpir.h"
-#include "boost/multiprecision/gmp.hpp" 
-#include "diophantine.h"
-
+#include <Windows.h>
 
 // TODO: reference additional headers your program requires here
