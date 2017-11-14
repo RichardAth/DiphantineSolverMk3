@@ -128,11 +128,12 @@ bool ShowHomoSols(int type, mpz_int Bi_SHH, mpz_int Bi_SHK, long long s, long lo
 							ShowLargeXY(X1, Y1, Bi_L1, Bi_L2, false, "", "");
 							std::cout << "Since Y = " << MagnifY << Y1;
 						}
-						putchar('\n');
+						std::cout << "---------------------------------------";
 					}
 					Bi_L2 *= MagnifY; 
 					ShowLargeXY("X", "Y", Bi_L1, Bi_L2, false, "", "");
-
+					if (teach)
+						std::cout << "---------------------------------------\n";
 					/*std::cout << "**temp ShowHomoSols(8) returns true: Bi_L1=" << Bi_L1;
 					std::cout << "  Bi_L2=" << Bi_L2 << "\n";*/
 
@@ -1001,19 +1002,19 @@ void SolContFrac(long long H, long long T, long long A, long long B, long long C
 							//            Dp_C = -AF
 							//            Dp_R = gcd(Dp_A, Dp_B, Dp_C)
 
-							Dp_C = A * s;          // Dp_C = As
-							Dp_A = (Dp_C + B) * s;  // Dp_A = (As+B)s
-							Dp_T = Dp_A + C;        // Dp_T = (As+B)s+C
-							Dp_R = -g_F;            // Dp_R = -F
+							Dp_C = A * s;             // Dp_C = A*s
+							Dp_A = (Dp_C + B) * s;    // Dp_A = (A*s+B)s
+							Dp_T = Dp_A + C;          // Dp_T = (A*s+B)s+C
+							Dp_R = -g_F;            
 							DivideDoublePrecLong(Dp_T, Dp_R, &Dp_A);   // Dp_A = -((As+B)s+C)/F
 
-							Dp_C *= 2;              // Dp_C = 2As
-							Dp_B = B;              // Dp_B = B
-							Dp_B += Dp_C;           // Dp_B = 2As+B
+							Dp_C *= 2;                // Dp_C = 2As
+							Dp_B = B;               
+							Dp_B += Dp_C;             // Dp_B = 2As+B
+							Dp_C = Dp_R * A;          // Dp_C = -AF
 
-							Dp_C = Dp_R * A;        // Dp_C = -AF
-							gcd(Dp_A, Dp_B, &Dp_T);      // Dp_T = gcd(Dp_A, Dp_B)
-							gcd(Dp_T, Dp_C, &Dp_R);      // Dp_R = gcd(Dp_A, Dp_B, Dp_C)
+							gcd(Dp_A, Dp_B, &Dp_T);   // Dp_T = gcd(Dp_A, Dp_B)
+							gcd(Dp_T, Dp_C, &Dp_R);   // Dp_R = gcd(Dp_A, Dp_B, Dp_C)
 							/* temporary */
 							/*std::cout << "**temp SolContFrac  Dp_A=" << Dp_A << "  Dp_B=" << Dp_B;
 							std::cout << "  Dp_C=" << Dp_C << "   DP_R=" << Dp_R << "\n";*/
@@ -1031,7 +1032,7 @@ void SolContFrac(long long H, long long T, long long A, long long B, long long C
 								}
 							}
 							else {
-								GetRoot(Dp_A, Dp_B, Dp_C);
+								GetRoot(Dp_A, Dp_B, Dp_C);   // sneaky!! values returned in global vars used by ContFrac
 								if (SCFstr == "") {
 									if (ContFrac(Dp_A, 3, 1, s, T, MagnifY, A)) {
 										if (Bi_L2 < 0) {
@@ -1053,7 +1054,8 @@ void SolContFrac(long long H, long long T, long long A, long long B, long long C
 											printf("Choosing the solution with minimum y:  \n%d solutions\n", NbrSols);
 
 										}
-										if (Compare(Bi_L2, Bi_Ycopy) > 0) {
+										//if (Compare(Bi_L2, Bi_Ycopy) > 0) {
+										if (Bi_L2>  Bi_Ycopy)  {
 											//std::cout << "**temp SolContFrac (2A)\n";
 											ShowLargeXY("X", "Y", Bi_Xcopy, Bi_Ycopy, true, "", "");
 										}
@@ -1186,6 +1188,6 @@ long long MultMod(long long Num1, long long Num2, long long Mod) {
 	N1 = Num1; 
 
 	Prod = (N1 * Num2)%Mod ;  
-	x = DoublePrecToLong(Prod);
+	x = DoublePrecToLong(Prod);   // magnitude of Prod  < Mod, therfore cannot overflow.
 	return x;
 }

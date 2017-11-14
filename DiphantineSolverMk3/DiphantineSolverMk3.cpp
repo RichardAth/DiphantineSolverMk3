@@ -25,8 +25,7 @@ _CrtMemState memState1;          // initial memory state
 _CrtMemState memState2;          // current memory state
 _CrtMemState memStatDiff;        // difference between initial and current memory state
 
-std::string info;
-std::string txt;
+std::string txtStr;
 //const std::string sq =  "²";        // would be nice to use, but causes problems 
 
 const std::string sq = "^2";
@@ -37,17 +36,14 @@ bool allSolsFound;
 const std::string divgcd = "Dividing the equation by the GCD we obtain: \n";
 
 long long g_A, g_B, g_C, g_D, g_E, g_F;
-long long g_Xi, g_Xl, g_Yi, g_Yl;
 long long g_CY1, g_CY0;
 long long g_A2, g_B2;
 long long g_Disc;
-
-mpz_int g_NUM, g_DEN;
-
 unsigned long long SqrtDisc;
 
 /* large numbers; shown by Bi_ prefix */
 mpz_int Bi_H1, Bi_H2, Bi_K1, Bi_K2, Bi_L1, Bi_L2;
+mpz_int g_NUM, g_DEN;
 
 int NbrSols = 0, NbrCo;
 int digitsInGroup = 6;     // used in ShowLargeNumber
@@ -62,7 +58,6 @@ void listLargeSolutions();
 
 /* print a string variable. This is a relic from the original java program */
 void w(std::string texto) {
-	//	info = info.append(texto);
 	std::cout << texto;
 }
 
@@ -163,13 +158,13 @@ void ShowX1Y1(long long X1, long long Y1, long long A, long long B, long long D,
 	}
 }
 
-/* output value of num. Uses global variable txt.
+/* output value of num. Uses global variable txtStr.
 iff t is odd, use '+' for +ve numbers.
-if t =2 result is left in txt and not output.
+if t =2 result is left in txtStr and not output. (this feature does not seem to be used anywhere)
 if num is zero do nothing */
 int Show(long long num, std::string str, int t) {
 	if (t == 2) {
-		txt = "";    // clear contents of txt
+		txtStr = "";    // 1st output of sequence; clear contents of txtStr
 	}
 	if (num != 0) {
 		std::string str1 = "";
@@ -182,24 +177,26 @@ int Show(long long num, std::string str, int t) {
 		if (abs(num) != 1) {
 			str1 += numToStr(abs(num));
 		}
-		str1 += str;
+
+		str1 += str;    // add suffix if any
 		if ((t & 2) != 0) {
-			txt += str1;
+			txtStr += str1;
 		}
 		else {
-			//printf("%s", str1.c_str());
 			std::cout << str1;
 		}
-		return (t | 1);  // return type bit for next time
+		return (t | 1);  // set bit 0, return type for next time
 	}
 	return t;
 }
 
+/* Uses global variable txtStr. 
+if t =2 result is left in txtStr and not output. (this feature does not seem to be used anywhere)*/
 void Show1(long long num, int t) {
 	char u = Show(num, "", t);
 	if ((u & 1) == 0 || abs(num) == 1) {
 		if ((u & 2) != 0) {
-			txt += numToStr(abs(num));
+			txtStr += numToStr(abs(num));  // output left in txtStr, not printed
 		}
 		else {
 			//w("" + numToStr(abs(num)));
@@ -346,11 +343,11 @@ long long DivDoublePrec(const mpz_int n, const mpz_int d) {
 }
 
 /*  Dest = CPrev*Bi_Prev + CAct*Bi_Act */
-void MultAddLargeNumbers(long long CPrev, const mpz_int Bi_Prev,
-	long long CAct, const mpz_int Bi_Act, mpz_int *Bi_Dest) {
-	
-	*Bi_Dest = CPrev*Bi_Prev + CAct*Bi_Act;
-}
+//void MultAddLargeNumbers(long long CPrev, const mpz_int Bi_Prev,
+//	long long CAct, const mpz_int Bi_Act, mpz_int *Bi_Dest) {
+//	
+//	*Bi_Dest = CPrev*Bi_Prev + CAct*Bi_Act;
+//}
 
 /* calculate K and L. values are returned in  Bi_L1(=K) and Bi_L2(=L)
 It returns true if K and L are valid.
@@ -398,7 +395,7 @@ bool CalculateKandL(const mpz_int Bi_R, const mpz_int Bi_s) {
 	return true;
 }
 
-/* print large number.  */
+/* print large number, with - sign if negative. */
 void ShowLargeNumber(const mpz_int Bi_Nbr) {
 	std::string nbrOutput = "";
 	char* buffer = NULL;
@@ -415,7 +412,7 @@ void ShowLargeNumber(const mpz_int Bi_Nbr) {
 		if ((msglen - index) % digitsInGroup == 0) {
 			// divide digits into groups, if there are more than 6 digits
 			if ((index > 0 && buffer[0] != '-') || (index > 1))
-				nbrOutput += " ";
+				nbrOutput += " ";  // put space after group of digits
 		}
 		nbrOutput += buffer[index];
 	}
@@ -473,7 +470,7 @@ int ShowSols(equation_class type) {
 	Bi_H1 = g_A* Bi_K2;    
 	ShowLargeNumber(Bi_H1);
 	printf("\nS = ");
-	//MultAddLargeNumbers(1, Bi_R, g_B, Bi_s, &Bi_H1);  // H1 = 1*H2 + g_B*K2
+	//MultAddLargeNumbers(1, Bi_H2, g_B, Bi_K2, &Bi_H1);  // H1 = 1*H2 + g_B*K2
 	Bi_H1 = Bi_H2 + g_B*Bi_K2;
 	ShowLargeNumber(Bi_H1);
 	if (type == hyperbolic_gen) {
@@ -539,7 +536,7 @@ void ShowRecursionRoot(equation_class type) {
 	}
 }
 
-/* called from solveEquation. Returns true if equation has no solutions*/
+/* called from classify. Returns true if equation has no solutions*/
 bool CheckMod(long long R, long long S, long long X2, long long X1, long long X0) {
 	long long Y2 = gcd(R, S);
 	long Y1 = 2;
@@ -624,7 +621,12 @@ std::string numToStr(long long num) {
 
 /* print ax^2 +bxy +cy2  (with apppropriate signs)*/
 void ShowBigEq(mpz_int Dp_A, mpz_int Dp_B, mpz_int Dp_C, std::string x, std::string y) {
-	gmp_printf("%Zd%s%s ", ZT(Dp_A), x.c_str(), sq.c_str());
+	if (Dp_A != 0) {
+		if (Dp_A !=1)
+			gmp_printf("%Zd%s%s ", ZT(Dp_A), x.c_str(), sq.c_str());
+		else
+			gmp_printf("%s%s ", x.c_str(), sq.c_str());
+	}
 	if (Dp_B !=0) {
 		gmp_printf("%+Zd%s%s ", ZT(Dp_B), x.c_str(), y.c_str());
 	}
@@ -667,16 +669,19 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC) {
 		printf("We have to find the continued fraction expansion of the roots of \n");
 		ShowBigEq(BiA, BiB, BiC, "t", "");
 		printf("= 0, that is, ");
-		printf("(Sqrt(%lld) ", g_Disc);
+		if (!NUMis0) {
+			std::cout << "(";
+		}
+		printf("Sqrt(%lld) ", g_Disc);
 		if (!NUMis0) {  // print NUM if it's not zero
 			gmp_printf("%+Zd) ", ZT(g_NUM));  // print num with sign + or -
 		}
 
 		if (g_DEN< 0) {
-			std::cout << " / (" << numToStr(g_DEN) << ")";  // print /(-den) if negative
+			std::cout << " / (" << g_DEN << ")";  // print /(-den) if negative
 		}
 		else {
-			std::cout << " / " << numToStr(g_DEN);          // print /den if positive
+			std::cout << " / " << g_DEN;          // print /den if positive
 		}
 		putchar('\n');
 	}
@@ -716,22 +721,20 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC) {
 		if (!NUMis0) {
 			gmp_printf("%+Zd", ZT(g_NUM));   // print NUM with sign + or - 
 		}
+		if (!DENis1 && !NUMis0) {
+			printf(")");
+		}
+		/* print "/DEN"  unless DEN = 1*/
 		if (!DENis1) {
-			if (NUMis0) {
-				printf(" / ");
+			printf(" / ");
+			if (g_DEN <0) {
+				std::cout << "(" << g_DEN << ")";  // print (-DEN)
 			}
 			else {
-				printf(") / ");
-			}
+				std::cout << g_DEN;            // print DEN without brackets round it
+			}		
 		}
-		if (g_DEN <0) {
-			std::cout << "(" << g_DEN << ")";  // print (-DEN)
-		}
-		else {
-			if (!DENis1) {
-				std::cout << numToStr(g_DEN);            // print DEN
-			}
-		}
+
 		putchar('\n');
 	}
 	g_Disc *= B*B;
@@ -881,12 +884,11 @@ long long DivideGcd(long long P, long long Q, long long R, long long S,
 }
 
 /* compare 2 Bi numbers*/
-int Compare(const mpz_int Bi_array, const mpz_int Bi_K1) {
-	//return mpz_cmp(Bi_array, Bi_K1);
-	if (Bi_array == Bi_K1) return 0;
-	if (Bi_array > Bi_K1) return 1;
-	else return -1;
-}
+//int Compare(const mpz_int Bi_array, const mpz_int Bi_K1) {
+//	if (Bi_array == Bi_K1) return 0;
+//	if (Bi_array > Bi_K1) return 1;
+//	else return -1;
+//}
 
 int Comparev(const void * Bi_array, const mpz_t Bi_K1) {
 	mpz_t temp;
@@ -1037,13 +1039,15 @@ void ShowLargeXY(std::string x, std::string y, mpz_int Bi_X, mpz_int Bi_Y,
 		//ChangeSign(&Bi_X);
 		//ChangeSign(&Bi_Y);
 		std::cout << "\n  and also:  " << x << "0 = ";
-		if (teach) {
-			w(eqX == "" ? "" : "-" + eqX);
+		if (teach && eqX.length() >0) {
+			//w(eqX == "" ? "" : "-" + eqX);
+			std::cout << "-" << eqX;
 		}
 		ShowLargeNumber(-Bi_X);
 		std::cout << "\n" << y << "0 = ";
-		if (teach) {
-			w(eqY == "" ? "" : "-" + eqY);
+		if (teach && eqY.length() >0) {
+			//w(eqY == "" ? "" : "-" + eqY);
+			std::cout << "-" << eqY;
 		}
 		ShowLargeNumber(-Bi_Y);
 		putchar('\n');
@@ -1098,69 +1102,67 @@ void listLargeSolutions() {
 	}
 }
 
-/* uses global vars Xi, Yi, Xl, Yl
-print x = Xi +X1*t  y = Yi +Y1*t 
+/* print x = Xi +X1*t  y = Yi +Y1*t 
 output is 'prettied up' by:
 1.	if xi =0 & X1  = 0 just print 'x=0'
 2.	if xi =0 & X1 NE 0 don't print 'xi +' i.e just print x = X1*t 
 3. if value of X1 is +/- 1 just print x = xi +/-t without the digit 1.
 4. same rules apply for y */
- 
-void PrintLinear(long long g_Xi, long long g_Xl, long long g_Yi, long long g_Yl, std::string va) {
+ void PrintLinear(long long Xi, long long Xl, long long Yi, long long Yl, std::string va) {
 	if (va == "t") {         // actually, va always = t
 		showAlso();
 	}
 
 	if (ExchXY) {
-		long long T = g_Xi; g_Xi = g_Yi; g_Yi = T;  /* swap Xi and Yi */
-		T = g_Xl; g_Xl = g_Yl; g_Yl = T;            /* swap X1 and Y1 */
+		long long T = Xi; Xi = Yi; Yi = T;  /* swap Xi and Yi */
+		T = Xl; Xl = Yl; Yl = T;            /* swap X1 and Y1 */
 	}
 
 	printf("x = ");
-	if (g_Xi == 0 && g_Xl == 0) {
+	if (Xi == 0 && Xl == 0) {
 		printf("0");  // print x = 0
 	}
 	else {
-		if (g_Xi != 0) {
-			printf("%lld", g_Xi);
+		if (Xi != 0) {
+			printf("%lld", Xi);
 		}
-		if (g_Xl < 0) {
+		if (Xl < 0) {
 			printf(" - ");
 		}
-		if (g_Xl > 0 && g_Xi != 0) {
+		if (Xl > 0 && Xi != 0) {
 			printf(" + ");
 		}
-		if (g_Xl != 0) {
-			if (abs(g_Xl) == 1) {
+		if (Xl != 0) {
+			if (abs(Xl) == 1) {
 				std::cout << " " << va;
 			}
 			else {
-				std::cout << abs(g_Xl) << va;
+				std::cout << abs(Xl) << va;
 			}
 		}
 	}
 
 	printf("   y = ");
-	if (g_Yi == 0 && g_Yl == 0) {
+	if (Yi == 0 && Yl == 0) {
 		printf("0");
 	}
 	else {
-		if (g_Yi != 0) {
+		if (Yi != 0) {
 			//w("" + numToStr(Yi));
-			printf("%lld", g_Yi);
+			printf("%lld", Yi);
 		}
-		if (g_Yl < 0) {
+		if (Yl < 0) {
 			printf(" - ");
 		}
-		if (g_Yl > 0 && g_Yi != 0) {
+		if (Yl > 0 && Yi != 0) {
 			printf(" + ");
 		}
-		if (g_Yl != 0) {
-			if (abs(g_Yl) == 1) {
+		if (Yl != 0) {
+			if (abs(Yl) == 1) {
 				std::cout << " " << va;
 			}
 			else {
-				std::cout << abs(g_Yl) << va;
+				std::cout << abs(Yl) << va;
 			}
 		}
 	}
@@ -1174,7 +1176,9 @@ number of solutions.
 The equation to be solved is of the form Dx + Ey + F =0 */
 int Linear(long long D, long long E, long long F) {
 	long long Tx;
+	long long Xi, Xl, Yi, Yl;
 	int t;
+
 	if (teach) {
 		printf("This is a linear equation ");
 		ShowLin(D, E, F, "x", "y");
@@ -1194,10 +1198,10 @@ int Linear(long long D, long long E, long long F) {
 			return 1;               // No solutions
 		}
 		else {
-			/*g_Xi = 0;
-			g_Xl = 1;
-			g_Yi = -F / E;
-			g_Yl = 0;*/
+			/*Xi = 0;
+			Xl = 1;
+			Yi = -F / E;
+			Yl = 0;*/
 			PrintLinear(0, 1, -F/E, 0, "t");
 			return 0;               // Solution found
 		}
@@ -1207,10 +1211,10 @@ int Linear(long long D, long long E, long long F) {
 			return 1;               // No solutions
 		}
 		else {
-			g_Xi = -F / D;
-			g_Xl = 0;
-			g_Yi = 0;
-			g_Yl = 1;
+			/*Xi = -F / D;
+			Xl = 0;
+			Yi = 0;
+			Yl = 1;*/
 			PrintLinear(-F / D, 0, 0, 1, "t");
 			return 0;               // Solution found
 		}
@@ -1229,9 +1233,11 @@ int Linear(long long D, long long E, long long F) {
 		D = D / Q; E = E / Q; F = F / Q;   // divide by gcd
 	}
 	if (teach) {
-		std::cout << divgcd;    // show new values after division by gcd
-		ShowLin(D, E, F, "x", "y");
-		printf(" = 0 \n");
+		if (Q != 1) {
+			std::cout << divgcd;    // show new values after division by gcd
+			ShowLin(D, E, F, "x", "y");
+			printf(" = 0 \n");
+		}
 		printf("Now we must apply the Generalized Euclidean algorithm: \n");
 	}
 	long long U1 = 1;
@@ -1254,33 +1260,33 @@ int Linear(long long D, long long E, long long F) {
 		V1 = T1; V2 = T2; V3 = T3;
 		t++;
 	}
-	g_Xi = -U1*F / U3; 
-	g_Xl = E; 
-	g_Yi = -U2*F / U3; 
-	g_Yl = -D;
+	Xi = -U1*F / U3; 
+	Xl = E; 
+	Yi = -U2*F / U3; 
+	Yl = -D;
 	if (teach) {
 		std::cout << "Step " << t << ": " << par(U1) << "*" << par(D) << " + " << par(U2) << "*" <<
 			par(E) << " = " << U3 << "\n";
 		std::cout << "\nMultiplying the last equation by " << par(-F / U3) << " we obtain:\n";
-		std::cout << par(g_Xi) << "*" << par(D) << " + " << par(g_Yi) << "*" << par(E) << " = " << (-F) << "\n";
+		std::cout << par(Xi) << "*" << par(D) << " + " << par(Yi) << "*" << par(E) << " = " << (-F) << "\n";
 		std::cout << "Adding and subtracting " << par(D) << "*" << par(E) << "t' we obtain:\n";
-		std::cout << "(" << g_Xi << " + " << par(E) << " t') * " << par(D) << " + " << g_Yi << " - " << par(D)
-			<< " t') * " << par(E) << " = " << (-F) << "\n";
+		std::cout << "(" << Xi << "+" << par(E) << "t')*" << par(D) << " + (" << Yi << "-" << par(D)
+			<< "t')*" << par(E) << " = " << (-F) << "\n";
 		printf("So, the solution is given by the set:\n");
-		PrintLinear(g_Xi, g_Xl, g_Yi, g_Yl, "t'");
+		PrintLinear(Xi, Xl, Yi, Yl, "t'");
 	}
 	V1 = D*D + E*E;
-	Tx = floordiv((D*g_Yi - E*g_Xi) + V1 / 2, V1);
+	Tx = floordiv((D*Yi - E*Xi) + V1 / 2, V1);
 	if (teach) {
 		std::cout << "By making the substitution t = " << Tx << " + t' we finally obtain:\n";
 	}
-	g_Xi += E*Tx;
-	g_Yi += -D*Tx;
-	if (g_Xl<0 && g_Yl<0) {
-		g_Xl = -g_Xl;
-		g_Yl = -g_Yl;
+	Xi += E*Tx;
+	Yi += -D*Tx;
+	if (Xl<0 && Yl<0) {
+		Xl = -Xl;
+		Yl = -Yl;
 	}
-	PrintLinear(g_Xi, g_Xl, g_Yi, g_Yl, "t");
+	PrintLinear(Xi, Xl, Yi, Yl, "t");
 	return 0;
 }
 
@@ -1370,7 +1376,7 @@ void ShowRecursion(equation_class type) {
 	//Dp_B = g_B; 
 	//GetRoot(Dp_A, Dp_B, Dp_C);          /* return values in Disc, SqrtDisc, g_NUM, g_DEN */
 	//ContFrac(Dp_A, 2, 1, 0, 0, 1, g_A);
-	GetRoot(1, g_B, Dp_C);          /* return values in Disc, SqrtDisc, g_NUM, g_DEN */
+	GetRoot(1, g_B, Dp_C);          /* return values in Disc, SqrtDisc, g_NUM, g_DEN, used by ContFrac */
 	ContFrac(1, 2, 1, 0, 0, 1, g_A);
 
 	if (teach) {
@@ -1459,7 +1465,7 @@ void SolveDiscIsSq(long long N0, std::string x, std::string y, long long SqrtD, 
 		}
 
 		/* If SqrtD is not zero perform loop twice, 2nd time with sign of Xc reversed
-		if SqrtD is zero,  for loop is only execuded once. */
+		if SqrtD is zero,  for loop is only executed once. */
 		for (temp = (SqrtD == 0 ? 1 : 0); temp<2; temp++) {
 			if (teach) {
 				//w("<LI>");
@@ -1475,7 +1481,8 @@ void SolveDiscIsSq(long long N0, std::string x, std::string y, long long SqrtD, 
 			Linear(2 * g_A*Xc, Xc*g_B + g_CY1*Yc, g_D*Xc + g_CY0*Yc);
 			Xc = -Xc;          // reverse sign of Xc
 		}
-		SqrtD = abs(SqrtD);  // pointless? SqrtD is always positive and also the changed value is not returned to the caller
+
+		//SqrtD = abs(SqrtD);  // pointless? SqrtD is always positive and also the changed value is not returned to the caller
 		if (teach) {
 			//w("</UL>");
 		}
@@ -1505,7 +1512,9 @@ void SolveDiscIsSq(long long N0, std::string x, std::string y, long long SqrtD, 
 					Y1 = (Fact1 + Fact2) / (2 * Yc);
 					std::cout << x1 << " = " << X1 << "\n" << y1
 						<< " = " << Y1 << "\n";
+					std::cout <<"-----------------------------------------\n";
 					ShowX1Y1(X1, Y1, g_A, g_B, g_D, g_CY1, g_CY0);  // display solution
+					std::cout << "-----------------------------------------\n";
 
 				}
 				else {
@@ -1597,17 +1606,17 @@ void SolveSimpleHyperbolic(void) {
 	}
 
 	if (g_E%g_B == 0) {
-		/*g_Xi = -g_E / g_B; 
-		g_Xl = 0; 
-		g_Yi = 0; 
-		g_Yl = 1;*/
+		/*Xi = -g_E / g_B; 
+		Xl = 0; 
+		Yi = 0; 
+		Yl = 1;*/
 		PrintLinear(-g_E/g_B, 0, 0, 1, "t");
 	}
 	if (g_D%g_B == 0) {
-		//g_Xi = 0; 
-		//g_Xl = 1; 
-		//g_Yi = -g_D / g_B; 
-		//g_Yl = 0;
+		//Xi = 0; 
+		//Xl = 1; 
+		//Yi = -g_D / g_B; 
+		//Yl = 0;
 		PrintLinear(0, 1, -g_D/g_B, 0, "t");
 	}
 	return;
@@ -1849,9 +1858,9 @@ void SolveElliptical(std::string x, std::string x1, std::string y) {
 	long long E1 = 4 * g_A*g_E - 2 * g_B*g_D;
 	long long F1 = 4 * g_A*g_F - g_D*g_D;
 	g = gcd(NegDisc, E1 / 2);
-	g_CY1 = NegDisc / g;
-	g_CY0 = E1 / 2 / g;
-	long long N0 = g_CY0*g_CY0*g - g_CY1*F1;
+	long long CY1 = NegDisc / g;
+	long long CY0 = E1 / 2 / g;
+	long long N0 = CY0*CY0*g - CY1*F1;
 
 	double sqrtgN0 = sqrt((double)g*(double)N0);
 
@@ -1870,11 +1879,11 @@ void SolveElliptical(std::string x, std::string x1, std::string y) {
 			NoSol();
 			return;
 		}
-		std::cout << "The roots are: (-" << par(E1) << " - llSqrt(" << numToStr(E1) << sq <<
-			" - 4 * " << par(NegDisc) << " * " << par(F1) << ")) / (2 * " << par(NegDisc) << ") = " <<
+		std::cout << "The roots are: (-" << par(E1) << " - sqrt(" << E1 << sq <<
+			" - 4*" << par(NegDisc) << "*" << par(F1) << ")) / (2*" << par(NegDisc) << ") = " <<
 			R3 << "\n";
-		std::cout << "and: (-" << par(E1) << " + llSqrt(" << E1 << sq << " - 4 * " << par(NegDisc)
-			<< " * " << par(F1) << ")) / (2 * " << par(NegDisc) + ") = " << R4 << " \n";
+		std::cout << "and: (-" << par(E1) << " + sqrt(" << E1 << sq << " - 4*" << par(NegDisc)
+			<< "*" << par(F1) << ")) / (2*" << par(NegDisc) + ") = " << R4 << " \n";
 		if (R2<R1) {
 			printf("There are no integers in this range,");
 			NoSol();
@@ -2035,7 +2044,8 @@ Note: B^2 -4AC is known as the discriminant of the equation
 */
 void solveEquation(const long long ax2, const long long bxy, const long long cy2,
 	const long long dx, const long long ey, const long long f) {
-	mpz_int Dp_A, Dp_B, Dp_C;
+	//mpz_int Dp_A, Dp_B, Dp_C;
+	mpz_int Dp_A, Dp_C;
 	bool teachaux;
 	long long NegDisc, E1, F1, G, H, K, N0;
 	long long T, g, h;
@@ -2110,15 +2120,15 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 		/* solve using continued fractions */
 		g_Disc = g_B*g_B - 4 * g_A*g_C; // get discriminant again
 
-		Dp_A = g_A;    
+		/*Dp_A = g_A;    
 		Dp_B = g_B; 
-		Dp_C = g_C; 
+		Dp_C = g_C; */
 
 		teachaux = teach;  // save value of teach
 		if (abs(g_F) != 1) {
 			teach = false;
 		}
-		GetRoot(Dp_A, Dp_B, Dp_C);       //  sneaky!! values returned in 
+		GetRoot(g_A, g_B, g_C);       //  sneaky!! values returned in 
 										 // global vars are used by SolContFrac
 		teach = teachaux;    // restore saved value of teach
 
@@ -2173,8 +2183,8 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 		break;             // finished processing homogeneous equation
 	}
 
-						   /* none of the above */
-	case hyperbolic_gen: {
+						  
+	case hyperbolic_gen: {  /* equation fits none of theother categories */
 		/* B^2 - 4AC > 0. There are a couple of special cases:
 		(1)   B^2 - 4AC is a perfect square
 		(2) N0 (calculated below) is zero
@@ -2187,10 +2197,10 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 		g_CY1 = NegDisc / g;
 		g_CY0 = E1 / 2 / g;
 		N0 = g_CY0*g_CY0*g - g_CY1*F1;
-		h = gcd(g_CY1, gcd(g, N0));
+		h = gcd(g_CY1, gcd(g, N0));   // h is gcd(Cy1, g, N0)
 		if (teach) {
 			printf("We want to convert this equation to one of the form:\n");
-			std::cout << x1 << sq << " + B " << y << sq << " << C " << y << " + D = 0 \n";
+			std::cout << x1 << sq << " + B " << y << sq << " + C " << y << " + D = 0 \n";
 			std::cout << "Multiplying the equation by " << par(4 * g_A) << ":\n";
 			ShowEq(4 * g_A*g_A, 4 * g_A*g_B, 4 * g_A*g_C, 4 * g_A*g_D, 4 * g_A*g_E, 4 * g_A*g_F, x, y);
 			printf(" = 0\n");
@@ -2295,18 +2305,18 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 
 		/* Solve by continued fractions.
 		Firstly, test if we need two cycles or four cycles */
-		Dp_A = g_A;      
-		Dp_C = Dp_A * g_C; 
-		Dp_A = 1; 
-		Dp_B = g_B; 
-		GetRoot(Dp_A, Dp_B, Dp_C);           //  sneaky!! values returned in 
+		//Dp_A = g_A;      
+		Dp_C = g_A * g_C; 
+	/*	Dp_A = 1; 
+		Dp_B = g_B; */
+		GetRoot(1, g_B, Dp_C);           //  sneaky!! values returned in 
 											 // global vars are used by ContFrac
-		Dp_A = g_A; 
+		//Dp_A = g_A; 
 
-		ContFrac(Dp_A, 5, 1, 0, g_B*g_B - 4 * g_A*g_C, 1, g_A); /* A2, B2 solutions */
+		ContFrac(g_A, 5, 1, 0, g_B*g_B - 4 * g_A*g_C, 1, g_A); /* A2, B2 solutions */
 
-		g_Disc = g_B*g_B - 4 * g_A*g_C;        // calculate discrininant again
-		G = (2 * g_A2 + g_B*g_B2) % g_Disc;
+		g_Disc = g_B*g_B - 4 * g_A*g_C;        // calculate discriminant again
+		G = (2 * g_A2 + g_B*g_B2) % g_Disc;    // note: g_A2, g_B2 set by ContFrac
 		H = (g_B*g_A2 + 2 * g_A*g_C*g_B2) % g_Disc;
 
 		if (((g_C*g_D*(G - 2) + g_E*(g_B - H)) % g_Disc != 0 ||
@@ -2317,9 +2327,9 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 		}
 
 		Dp_A = NegDisc / g / h;     
-		Dp_B = 0;                
+		//Dp_B = 0;                
 		Dp_C = g / h; 
-		GetRoot(Dp_A, Dp_B, Dp_C);
+		GetRoot(Dp_A, 0, Dp_C);
 		G = H = -N0 / h;
 		K = 1;
 		T = 3;
