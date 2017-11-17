@@ -25,7 +25,7 @@ bool ShowHomoSols(int type, mpz_int Bi_H1, mpz_int Bi_K1, long long s, long long
 void ShowLargeNumber(const mpz_int Bi_Nbr);
 long long DivLargeNumber(const mpz_int Bi_Nbr, long long Coef, mpz_int *Bi_Dest);
 long long tDivLargeNumber(const mpz_int n, long long d, mpz_int *q);
-long long DoublePrecToLong(const mpz_int x);
+long long MulPrToLong(const mpz_int x);
 long long DivDoublePrec(const mpz_int Dp_Dividend, const mpz_int Dp_Divisor);
 void DivideDoublePrecLong(const mpz_int Dp_Dividend, const mpz_int Dp_Divisor, mpz_int *Dp_Quotient);
 void gcd(const mpz_int Dp_Nbr1, const mpz_int Dp_Nbr2, mpz_int *Dp_Gcd);
@@ -39,17 +39,18 @@ std::string numToStr(long long num);        // same name, does same job, but for
 std::string par(long long num);
 void ShowLin(long long D, long long E, long long F, std::string x, std::string y);
 bool ContFrac(const mpz_int Dp_A, int type, int SqrtSign, long long s, long long T,
-	long long MagnifY, long long A);
+	long long MagnifY, long long A, const long long g_Disc);
 void ShowAllLargeSolutions();
 void ShowEq(long long A, long long B, long long C, long long D, long long E, long long F,
 	std::string x, std::string y);
-void SolContFrac(long long H, long long T, long long A, long long B, long long C, std::string SCFstr);
+void SolContFrac(long long H, long long T, long long A, const long long B, long long C, 
+	std::string SCFstr);
 
 long long MultMod(long long factor1, long long factor2, long long Mod);
 long long ModInv(long long Val, long long Mod);
 long long ModPow(long long Base, long long Exp, long long Mod);
 void ShowBigEq(mpz_int Dp_A, mpz_int Dp_B, mpz_int Dp_C, std::string x, std::string y);
-void GetRoot(mpz_int Dp_A, mpz_int Dp_B, mpz_int Dp_C);
+void GetRoot(mpz_int Dp_A, mpz_int Dp_B, mpz_int Dp_C, long long *Disc);
 //int Compare(const mpz_int Bi_array, const mpz_int Bi_K1);
 
 /* enumerated variable used to classify type of equation */

@@ -7,8 +7,7 @@
 #define ZT(a) a.backend().data()
 
 const std::string sq = "^2";
-extern mpz_int Bi_L1, Bi_L2, Bi_H1, Bi_H2, Bi_K1, Bi_K2;
-extern long long g_Disc;
+extern mpz_int Bi_H1, Bi_H2, Bi_K1, Bi_K2;
 extern long long g_A, g_B, g_D, g_F;
 extern mpz_int g_NUM, g_DEN;
 extern unsigned long long SqrtDisc;
@@ -19,6 +18,7 @@ extern bool teach;
 
 long long g_A1, g_B1;
 int NbrEqs, EqNbr;
+mpz_int Bi_L1, Bi_L2;
 std::string UU = "";
 std::string VU = "";
 std::string UL = "";
@@ -140,7 +140,7 @@ bool ShowHomoSols(int type, mpz_int Bi_SHH, mpz_int Bi_SHK, long long s, long lo
 					return true;
 				}
 			}
-			/*MultAddLargeNumbers*/(-s*T, Bi_SHH, g_F*T, Bi_SHK, &Bi_L1);
+			/*MultAddLargeNumbers(-s*T, Bi_SHH, g_F*T, Bi_SHK, &Bi_L1);*/
 			Bi_L1 = -s*T* Bi_SHH + g_F*T* Bi_SHK;
 			/*gmp_printf("**temp ShowHomoSols(9) Bi_L1= %lld*%Zd + %lld*%Zd =", -s*T, ZT(Bi_SHH), g_F*T, ZT(Bi_SHK));
 			std::cout << Bi_L1;*/
@@ -184,12 +184,12 @@ bool ShowHomoSols(int type, mpz_int Bi_SHH, mpz_int Bi_SHK, long long s, long lo
 *     NbrEqs, Eqnbr, NbrSols, g_F, g_A1, g_A2, g_B1, g_B2                  *
 ****************************************************************************/
 bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, long long T,
-	long long MagnifY, long long A) {
+	long long MagnifY, long long A, const long long Disc) {
 
 	/*std::cout << "**temp ContFrac: type=" << type << "  SqrtSign=" << SqrtSign << "  s=" << s;
 	std::cout << "  T=" << T << "  MagnifY=" << MagnifY << "  A=" << A << "\n";
-	std::cout << "g_NUM=" << g_NUM;
-	std::cout << "  g_DEN=" << g_DEN << "\n";*/
+	std::cout << "g_NUM=" << g_NUM << "  g_DEN=" << g_DEN;
+	std::cout << " Disc=" << Disc << "\n";*/
 
 	long long P, Z, M, P1, M1, Tmp, K, L, Mu;
 	mpz_int Dp_P, Dp_M, Dp_Z, Dp_G, Dp_Mu, Dp_K, Dp_L, Dp_M1, Dp_P1, Dp_zz;
@@ -212,14 +212,12 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 		if (type == 1) {
 			ShowLargeXY(X1, Y1, Bi_H1, Bi_K1, true, "", "");
 			//std::cout << "** temp ContFrac returns true (1) - solution(s) found\n";
-			assert(_CrtCheckMemory());
 			return true;            /* Indicate there are solutions */
 		}
 
-		if ((type == 3 || type == 4) && (g_Disc != 5 || A*g_F<0)) {
+		if ((type == 3 || type == 4) && (Disc != 5 || A*g_F<0)) {
 			if (ShowHomoSols(type, Bi_H1, Bi_K1, s, T, MagnifY, "", "")) {
 				//std::cout << "**temp ContFrac(2) - solution found\n";
-				assert(_CrtCheckMemory());
 				return true;          /* Indicate there are solutions */
 			}
 		}
@@ -227,7 +225,7 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 
 	/* Paso = 1: Quick scan for solutions */
 	/* Paso = 2: Show actual solutions */
-	for (int Paso = (type == 2 || g_Disc == 5 && A*g_F>0 && (type == 3 || type == 4) ? 2 : 1);
+	for (int Paso = (type == 2 || Disc == 5 && A*g_F>0 && (type == 3 || type == 4) ? 2 : 1);
 		Sols && Paso <= 2; Paso++) {
 		Conv = 0;
 		Sols = false;
@@ -315,7 +313,7 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 		std::cout << "  Dp_P1=" << Dp_P1 << "\n";*/
 
 		do {
-			Dp_Z = g_Disc;  
+			Dp_Z = Disc;  
 			//std::cout << "**temp ContFrac  Dp_Z=" << Dp_Z << " (3D)\n";
 
 			Dp_G = Dp_M * Dp_M; 
@@ -326,6 +324,7 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 
 			DivideDoublePrecLong(Dp_G, Dp_P, &Dp_P1);  // P1 = (Disc-M*M)/P
 			 //std::cout << "**temp ContFrac Dp_P1=" << Dp_P1 << "\n";
+
 			/* Z = SqrtDisc +(1 or 0, depending on sign of P1) */
 			Dp_Z = SqrtDisc + ((Dp_P1 < 0) ? 1 : 0); 
 			Dp_K = Dp_M + Dp_Z;        
@@ -376,7 +375,7 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 			}
 
 			if (type == 3 || type == 4) {
-				if (Co == 0 && A*g_F>0 && g_Disc == 5) {  /* Solution found */
+				if (Co == 0 && A*g_F>0 && Disc == 5) {  /* Solution found */
 					if (Paso == 1) {
 						secondDo = false;
 						Sols = true;
@@ -484,14 +483,14 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 			continue;    // go to next step (paso = 2)
 		}
 
-		Mu = DoublePrecToLong(Dp_Mu);
-		L = DoublePrecToLong(Dp_L);
-		K = DoublePrecToLong(Dp_K);
-		M = DoublePrecToLong(Dp_M);
-		P = DoublePrecToLong(Dp_P);
+		Mu = MulPrToLong(Dp_Mu);
+		L = MulPrToLong(Dp_L);
+		K = MulPrToLong(Dp_K);
+		M = MulPrToLong(Dp_M);
+		P = MulPrToLong(Dp_P);
 
 		do {
-			P1 = (g_Disc - M*M) / P;    /* P & Q should be > 0 (See Knuth Ex 4.5.3-12) */
+			P1 = (Disc - M*M) / P;    /* P & Q should be > 0 (See Knuth Ex 4.5.3-12) */
 			Z = (SqrtDisc + M) / P1;
 			M1 = Z*P1 - M;
 			if (type == 1 && P == Mu) {    /* Solution found */
@@ -512,7 +511,7 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 				break;
 			}
 			if (type == 3 || type == 4) {
-				if ((Co & 1) == 0 && A*g_F>0 && g_Disc == 5) {   /* Solution found */
+				if ((Co & 1) == 0 && A*g_F>0 && Disc == 5) {   /* Solution found */
 					if (Paso == 1) {
 						Sols = true;
 						//std::cout << "**temp ContFrac(12)\n";
@@ -657,7 +656,7 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 * called from solveEquation                                                   *
 * overwrites global variable g_F, Bi_L1, Bi_L2, NbrSols                       *
 ******************************************************************************/
-void SolContFrac(long long H, long long T, long long A, long long B, long long C,
+void SolContFrac(long long H, long long T, long long A, const long long B, long long C,
 	std::string SCFstr) {
 	long long factor[64] = { 0 };
 	long long P[64] = { 0 };
@@ -668,7 +667,8 @@ void SolContFrac(long long H, long long T, long long A, long long B, long long C
 	long long Tmp, q, s, t, v, Pp, dif, Sol1, Sol2, Modulo;
 	long long SqrtDiscCopy = SqrtDisc;
 	mpz_int NUMcopy, DENcopy;
-	long long DiscCopy = g_Disc;
+
+	long long Disc;
 	long long ValA, ValB, ValC, ValF, ValAM, ValBM, ValCM;
 	long long VarD, VarK, VarQ, VarR, VarV, VarW, VarX, VarY, VarY1;
 	mpz_int Dp_A, Dp_B, Dp_C, Dp_R, Dp_S, Dp_T;
@@ -973,7 +973,6 @@ void SolContFrac(long long H, long long T, long long A, long long B, long long C
 					SqrtDisc = SqrtDiscCopy;
 					g_NUM = NUMcopy;    
 					g_DEN = DENcopy;  
-					g_Disc = DiscCopy;
 					//std::cout << "**temp SolContFrac exit(1)\n";
 					assert(_CrtCheckMemory());
 					return;
@@ -1032,9 +1031,9 @@ void SolContFrac(long long H, long long T, long long A, long long B, long long C
 								}
 							}
 							else {
-								GetRoot(Dp_A, Dp_B, Dp_C);   // sneaky!! values returned in global vars used by ContFrac
+								GetRoot(Dp_A, Dp_B, Dp_C, &Disc);   // sneaky!! values returned in return values in Disc, SqrtDisc, g_NUM, g_DEN, used by ContFrac
 								if (SCFstr == "") {
-									if (ContFrac(Dp_A, 3, 1, s, T, MagnifY, A)) {
+									if (ContFrac(Dp_A, 3, 1, s, T, MagnifY, A, Disc)) {
 										if (Bi_L2 < 0) {
 											Bi_L1 = -Bi_L1; //ChangeSign
 											Bi_L2 = -Bi_L2;//ChangeSign
@@ -1044,7 +1043,7 @@ void SolContFrac(long long H, long long T, long long A, long long B, long long C
 										Bi_Ycopy = Bi_L2; 
 									}
 
-									if (ContFrac(Dp_A, 3, (-1), s, T, MagnifY, A)) {
+									if (ContFrac(Dp_A, 3, (-1), s, T, MagnifY, A, Disc)) {
 										if (Bi_L2 < 0) {
 											Bi_L1 = -Bi_L1;  //ChangeSign;
 											Bi_L2 = -Bi_L2;  //ChangeSign
@@ -1073,8 +1072,8 @@ void SolContFrac(long long H, long long T, long long A, long long B, long long C
 									}
 								}
 								else {
-									ContFrac(Dp_A, 4, 1, s, T, MagnifY, A);
-									ContFrac(Dp_A, 4, -1, s, T, MagnifY, A);
+									ContFrac(Dp_A, 4, 1, s, T, MagnifY, A, Disc);
+									ContFrac(Dp_A, 4, -1, s, T, MagnifY, A, Disc);
 								}
 							}
 						}
@@ -1131,7 +1130,6 @@ void SolContFrac(long long H, long long T, long long A, long long B, long long C
 			SqrtDisc = SqrtDiscCopy;
 			g_NUM  = NUMcopy;   // restore original values     
 			g_DEN  = DENcopy;  
-			g_Disc = DiscCopy;
 			//std::cout << "**temp SolContFrac(9)\n";
 		} while (MagnifY*MagnifY > gcdAF);
 		//std::cout << "**temp SolContFrac(10)\n";
@@ -1188,6 +1186,6 @@ long long MultMod(long long Num1, long long Num2, long long Mod) {
 	N1 = Num1; 
 
 	Prod = (N1 * Num2)%Mod ;  
-	x = DoublePrecToLong(Prod);   // magnitude of Prod  < Mod, therfore cannot overflow.
+	x = MulPrToLong(Prod);   // magnitude of Prod  < Mod, therfore cannot overflow.
 	return x;
 }

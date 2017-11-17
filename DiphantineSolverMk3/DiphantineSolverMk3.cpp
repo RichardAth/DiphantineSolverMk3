@@ -4,6 +4,8 @@
 
 #include "stdafx.h"
 #include <windows.h> 
+//#define temp 1
+
 // Diophantine Quadratic Equation Solver
 // ax^2 + bxy + cy^2 + dx + ey + f = 0 (unknowns x,y integer numbers)
 //
@@ -35,14 +37,15 @@ bool also = false, ExchXY = false, teach = false;
 bool allSolsFound;
 const std::string divgcd = "Dividing the equation by the GCD we obtain: \n";
 
-long long g_A, g_B, g_C, g_D, g_E, g_F;
+long long g_A, g_B, g_C, g_D, g_E, g_F;  // coefficients for x², xy, y² x, y, and constant
 long long g_CY1, g_CY0;
 long long g_A2, g_B2;
-long long g_Disc;
+long long g_Disc;    // should get rid of this, use 
+mpz_int Dp_Disc;     // extended-precision variable instead
 unsigned long long SqrtDisc;
 
 /* large numbers; shown by Bi_ prefix */
-mpz_int Bi_H1, Bi_H2, Bi_K1, Bi_K2, Bi_L1, Bi_L2;
+mpz_int Bi_H1, Bi_H2, Bi_K1, Bi_K2;
 mpz_int g_NUM, g_DEN;
 
 int NbrSols = 0, NbrCo;
@@ -259,7 +262,7 @@ void DivideDoublePrecLong(const mpz_int n, const mpz_int d, mpz_int *q) {
 
 	if (d == 0) {
 		fprintf(stderr, "** divide by zero error\n");
-		abort();
+		throw std::invalid_argument("divide by zero");
 	}
 	mpz_init(qq);
 	mpz_fdiv_q(qq, ZT(n), ZT(d));          // note use of floor division
@@ -279,7 +282,7 @@ long long DivLargeNumber(const mpz_int n, long long d, mpz_int *q) {
 
 	if (d == 0) {
 		fprintf(stderr, "** divide by zero error\n");
-		abort();
+		throw std::invalid_argument("divide by zero");
 	}
 
 	/* because no mpz_fdiv_q_si exists in the library we need to convert the divisor to a bigint */
@@ -308,7 +311,7 @@ long long tDivLargeNumber(const mpz_int n, long long d, mpz_int *q) {
 
 	if (d == 0) {
 		fprintf(stderr, "** divide by zero error\n");
-		abort();
+		throw std::invalid_argument("divide by zero");
 	}
 
 	/* because no mpz_tdiv_q_si exists in the library we need to convert the divisor to a bigint */
@@ -331,6 +334,11 @@ long long DivDoublePrec(const mpz_int n, const mpz_int d) {
 	mpz_t q, r;
 	long long llquot;
 
+	if (d == 0) {
+		fprintf(stderr, "** divide by zero error\n");
+		throw std::invalid_argument("divide by zero");
+	}
+
 	mpz_inits(q, r, NULL);
 	mpz_fdiv_qr(q, r, ZT(n), ZT(d));    // note use of floor division
 	assert(mpz_fits_slong_p(q) != 0);   // is quotient too big for normal integer?
@@ -349,48 +357,49 @@ long long DivDoublePrec(const mpz_int n, const mpz_int d) {
 //	*Bi_Dest = CPrev*Bi_Prev + CAct*Bi_Act;
 //}
 
-/* calculate K and L. values are returned in  Bi_L1(=K) and Bi_L2(=L)
+/* calculate K and L. values are returned in  K) and L
 It returns true if K and L are valid.
 globals Bi_H1, Bi_K1 are also used
-Uses input global variables g_A, g_B, g_C, g_D, g_E
+Uses input global variables A, B, g_C, g_D, g_E
 called from ShowSols */
-bool CalculateKandL(const mpz_int Bi_R, const mpz_int Bi_s) {
+bool CalculateKandL(const long long A, const long long B, const long long C, const long long D,
+	const long long E, const mpz_int Bi_R, const mpz_int Bi_s, mpz_int *L, mpz_int *K) {
 #ifdef temp
 	std::cout << "**temp CalculateKandL "
 	<< " Bi_R=" << Bi_R << " Bi_s=" << Bi_s;
-	std::cout << " A=" << g_A << " B=" << g_B << " C=" << g_C << " D=" << g_D
-	<< " E=" << g_E << "\n";
+	std::cout << " A=" << A << " B=" << B << " C=" << C << " D=" << D
+	<< " E=" << E << "\n";
 #endif
-	//MultAddLargeNumbers(2, Bi_R, g_B, Bi_s, &Bi_L1);  /* 2r + Bs */
-	Bi_L1 = 2 * Bi_R + g_B*Bi_s;
-	Bi_H1 = Bi_L1 - 2;   /* Kd = 2r + Bs - 2 */
+	//MultAddLargeNumbers(2, Bi_R, B, Bi_s, &Bi_L1);  /* 2r + Bs */
+	*K = 2 * Bi_R + B*Bi_s;   // 
+	Bi_H1 = *K - 2;   /* Kd = 2r + B*s - 2 */
 	Bi_K1 = Bi_R - 1;   /* r - 1 */
-	//MultAddLargeNumbers(-g_B, Bi_K1, -2 * g_A*g_C, Bi_s, &Bi_K1);  /* Ke */
-	Bi_K1 = -g_B*Bi_K1 - 2 * g_A*g_C* Bi_s;
+	//MultAddLargeNumbers(-B, Bi_K1, -2 * A*g_C, Bi_s, &Bi_K1);  /* Ke */
+	Bi_K1 = -B*Bi_K1 - 2 * A*C* Bi_s;
 	//MultAddLargeNumbers(g_C*g_D, Bi_H1, g_E, Bi_K1, &Bi_L1);  /* K(4AC - BB) */
-	Bi_L1 = g_C*g_D*Bi_H1 + g_E* Bi_K1;
-	if (tDivLargeNumber(Bi_L1, 4 * g_A*g_C - g_B*g_B, &Bi_L1) != 0) {  /* K */
+	*K = C*D*Bi_H1 + E* Bi_K1;
+	if (tDivLargeNumber(*K, 4 * A*C - B*B, K) != 0) {  /* K */
 #ifdef temp
 		std::cout <<"**temp CalculateKandL: K not integer; return false\n";
 #endif
 		return false;               /* K not integer */
 	}
-	//MultAddLargeNumbers(g_D, Bi_K1, g_A*g_E, Bi_H1, &Bi_L2);
-	Bi_L2 = g_D*Bi_K1 + g_A*g_E* Bi_H1;
+	//MultAddLargeNumbers(g_D, Bi_K1, A*g_E, Bi_H1, &Bi_L2);
+	*L = D*Bi_K1 + A*E* Bi_H1;
 #ifdef temp
-	std::cout << "**temp CalculateKandL " << " Bi_L2=" << Bi_L2
-	<< " Divisor = " <<   4 * g_A*g_C - g_B*g_B << "\n";
+	std::cout << "**temp CalculateKandL " << " L=" << L
+	<< " Divisor = " <<   4 * A*C - B*B << "\n";
 #endif
-	if (tDivLargeNumber(Bi_L2, 4 * g_A*g_C - g_B*g_B, &Bi_L2) != 0) {
+	if (tDivLargeNumber(*L, 4 * A*C - B*B, L) != 0) {
 #ifdef temp
 		std::cout << "**temp CalculateKandL: L not integer; return false\n";
 #endif
 		return false;               /* L not integer */
 	}
 	//MultAddLargeNumbers(1, Bi_L2, g_D, Bi_s, &Bi_L2);    /* L */
-	Bi_L2 += g_D* Bi_s;
+	*L += D* Bi_s;
 #ifdef temp
-	std::cout << "**temp CalculateKandL: Bi_L2=" << Bi_L2 << "\n";
+	std::cout << "**temp CalculateKandL: L=" << L << "\n";
 #endif
 	return true;
 }
@@ -426,26 +435,26 @@ void ShowLargeNumber(const mpz_int Bi_Nbr) {
 
 
 /* called from ShowRecursionRoot. Uses global variables:
-Bi_H1, Bi_H2, Bi_K2, Bi_L1, Bi_L2, A, C
+Bi_K2, A, B, C, D, E
+Value returned in Bi_H1 is used by caller.
 type = hyperbolic_homog (homogenous) or hyperbolic_gen (general hyperbolic)
 return 1 if K or L not integers, otherwise zero
 If K and L are integers, print values for P, Q, K, R, S, L*/
-int ShowSols(equation_class type) {
+int ShowSols(equation_class type, const mpz_int m, const mpz_int n) {
+	mpz_int K, L;
 #ifdef temp
-	std::cout << "**temp ShowSols  Bi_H2=" << Bi_H2
-		<< " Bi_K2=" << Bi_K2 << " g_C=" << g_C << "\n";
+	std::cout << "**temp ShowSols  m=" << m << " n=" << n << " g_C=" << g_C << "\n";
 #endif
 	if (type == hyperbolic_gen) {
-		if (!CalculateKandL(Bi_H2, Bi_K2)) {     /* if K or L not integers */
+		if (!CalculateKandL(g_A, g_B, g_C, g_D, g_E, m, n, &L, &K)) {     /* if K or L not integers */
 			return 1;                      /* bye */
 		}
-		/* values for K and L now in Bi_L1, Bi_L2 respectively */
 	}
 	if (teach) {
 		printf("m = ");
-		ShowLargeNumber(Bi_H2);
+		ShowLargeNumber(m);
 		printf("\nn = ");
-		ShowLargeNumber(Bi_K2);
+		ShowLargeNumber(n);
 		printf("\nUsing the formulas: P = m\n");
 		printf("Q = -Cn \n");
 		if (type == hyperbolic_gen) {
@@ -458,24 +467,21 @@ int ShowSols(equation_class type) {
 		printf("we obtain:\n");
 	}
 	printf("P = ");
-	ShowLargeNumber(Bi_H2);
+	ShowLargeNumber(m);
 	printf("\nQ = ");
-	Bi_H1 = -g_C* Bi_K2;   
+	Bi_H1 = -g_C* n;   
 	ShowLargeNumber(Bi_H1);
 	if (type == hyperbolic_gen) {
-		printf("\nK = ");
-		ShowLargeNumber(Bi_L1);
+		printf("\nK = "); 	ShowLargeNumber(K);
 	}
-	printf("\nR = ");
-	Bi_H1 = g_A* Bi_K2;    
-	ShowLargeNumber(Bi_H1);
-	printf("\nS = ");
-	//MultAddLargeNumbers(1, Bi_H2, g_B, Bi_K2, &Bi_H1);  // H1 = 1*H2 + g_B*K2
-	Bi_H1 = Bi_H2 + g_B*Bi_K2;
-	ShowLargeNumber(Bi_H1);
+	Bi_H1 = g_A* n;  
+	printf("\nR = "); ShowLargeNumber(Bi_H1);
+
+	Bi_H1 = m + g_B*n;
+	printf("\nS = "); ShowLargeNumber(Bi_H1);
+
 	if (type == hyperbolic_gen) {
-		printf("\nL = ");
-		ShowLargeNumber(Bi_L2);
+		printf("\nL = ");  ShowLargeNumber(L);
 	}
 	putchar('\n');
 	return 0;
@@ -483,10 +489,11 @@ int ShowSols(equation_class type) {
 
 /* called from ShowRecursion
 type = hyperbolic_homog (homogenous) or hyperbolic_gen (general hyperbolic)
-Uses global variables Bi_H1, Bi_R, Bi_s, Bi_L1, Bi_L2, A, B, C, D, E */
+Uses global variables Bi_H1, Bi_R, Bi_s, A, B, C, D, E */
 void ShowRecursionRoot(equation_class type) {
 	char t;   // 1 if K and L not integers, otherwise 0
-	t = ShowSols(type);
+	mpz_int Bi_tmp1, Bi_tmp2;
+	t = ShowSols(type, Bi_H2, Bi_K2);
 	if (type == hyperbolic_gen) {
 		Bi_H2 = -Bi_H2; //ChangeSign(&Bi_R);
 		Bi_K2 = -Bi_K2; //ChangeSign(&Bi_s);
@@ -497,7 +504,7 @@ void ShowRecursionRoot(equation_class type) {
 									  ShowSols has an important side-effect; it prints values for P, Q, K, R, S, L
 									  if it can find them. Sometimes each call produces a different but valid
 									  set of values */
-		if (ShowSols(type) == 1 && t == 1) {
+		if (ShowSols(type, Bi_H2, Bi_K2) == 1 && t == 1) {
 			/* if we get to here we haven't yet got any values for P, Q, K, R, S, L.
 			The 3rd way below tends to produce very large numbers. */
 			if (teach) {
@@ -510,28 +517,28 @@ void ShowRecursionRoot(equation_class type) {
 					"R = An(2m + Bn)\nS = m" << sq << " + 2Bmn + (B" + sq << " - AC)n" << sq <<
 					"\nL = n(Dm + (BD-AE)n) \nwe obtain:\n";
 			}
-			Bi_H1 = Bi_H2 * Bi_H2; //Mult2LargeNumbers(Bi_R, Bi_R, &Bi_H1);   /* m^2 */
-			Bi_K1 = Bi_H2 * Bi_K2; //Mult2LargeNumbers(Bi_R, Bi_s, &Bi_K1);   /* mn */
-			Bi_L1 = Bi_K2 * Bi_K2; // Mult2LargeNumbers(Bi_s, Bi_s, &Bi_L1);   /* n^2 */
-			//MultAddLargeNumbers(1, Bi_H1, -g_A*g_C, Bi_L1, &Bi_L2);
-			Bi_L2 = Bi_H1 - g_A*g_C* Bi_L1;
-			printf("P = ");  ShowLargeNumber(Bi_L2);
-			//MultAddLargeNumbers(-2 * g_C, Bi_K1, -g_B*g_C, Bi_L1, &Bi_L2);
-			Bi_L2 = (-2 * g_C* Bi_K1) + (-g_B*g_C* Bi_L1);
-			printf("\nQ = ");   ShowLargeNumber(Bi_L2);
-			//MultAddLargeNumbers(-g_E, Bi_K1, -g_C*g_D, Bi_L1, &Bi_L2);
-			Bi_L2 = (-g_E* Bi_K1) + (-g_C*g_D* Bi_L1);
-			printf("\nK = "); 	ShowLargeNumber(Bi_L2);
-			//MultAddLargeNumbers(2 * g_A, Bi_K1, g_A*g_B, Bi_L1, &Bi_L2);
-			Bi_L2 = 2 * g_A* Bi_K1 + g_A*g_B* Bi_L1;
-			printf("\nR = ");  ShowLargeNumber(Bi_L2);
-			//MultAddLargeNumbers(g_B*g_B - g_A*g_C, Bi_L1, 2 * g_B, Bi_K1, &Bi_L2);
-			Bi_L2 = (g_B*g_B - g_A*g_C)* Bi_L1 + 2 * g_B* Bi_K1;
-			Bi_L2 += Bi_H1; 
-			printf("\nS = ");  ShowLargeNumber(Bi_L2);
-			//MultAddLargeNumbers(g_D, Bi_K1, g_B*g_D - g_A*g_E, Bi_L1, &Bi_L2);
-			Bi_L2 = g_D* Bi_K1 + (g_B*g_D - g_A*g_E)* Bi_L1;
-			printf("\nL = ");   ShowLargeNumber(Bi_L2);   putchar('\n');
+			Bi_H1 = Bi_H2 * Bi_H2;    /* m^2 */
+			Bi_K1 = Bi_H2 * Bi_K2;    /* mn */
+			Bi_tmp1 = Bi_K2 * Bi_K2;    /* n^2 */
+
+			Bi_tmp2 = Bi_H1 - g_A*g_C* Bi_tmp1;
+			printf("P = ");  ShowLargeNumber(Bi_tmp2);
+
+			Bi_tmp2 = (-2 * g_C* Bi_K1) + (-g_B*g_C* Bi_tmp1);
+			printf("\nQ = ");   ShowLargeNumber(Bi_tmp2);
+
+			Bi_tmp2 = (-g_E* Bi_K1) + (-g_C*g_D* Bi_tmp1);
+			printf("\nK = "); 	ShowLargeNumber(Bi_tmp2);
+
+			Bi_tmp2 = 2 * g_A* Bi_K1 + g_A*g_B* Bi_tmp1;
+			printf("\nR = ");  ShowLargeNumber(Bi_tmp2);
+
+			Bi_tmp2 = (g_B*g_B - g_A*g_C)* Bi_tmp1 + 2 * g_B* Bi_K1;
+			Bi_tmp2 += Bi_H1; 
+			printf("\nS = ");  ShowLargeNumber(Bi_tmp2);
+
+			Bi_tmp2 = g_D* Bi_K1 + (g_B*g_D - g_A*g_E)* Bi_tmp1;
+			printf("\nL = ");   ShowLargeNumber(Bi_tmp2);   putchar('\n');
 		}
 	}
 }
@@ -640,27 +647,32 @@ void ShowBigEq(mpz_int Dp_A, mpz_int Dp_B, mpz_int Dp_C, std::string x, std::str
 }
 
 /* convert biginteger to normal. Checks for overflow */
-long long DoublePrecToLong(const mpz_int x) {
+long long MulPrToLong(const mpz_int x) {
 	long long rv;
-	assert(mpz_fits_slong_p(ZT(x)) != 0);   // is x too big for normal integer?
-	rv = mpz_get_si(ZT(x)); // convert to normal integer
-	return rv;
+	if (x >= LLONG_MIN && x <= LLONG_MAX) { // is x value OK for normal integer?
+		rv = mpz_get_si(ZT(x)); // convert to normal integer
+		return rv;
+	}
+	else
+		throw std::range_error ("number cannot be converted to 64-bit");
+	return 0;
 }
 
 
 /* prepare for solving by continued fractions.
 return values in global variables Disc, SqrtDisc, g_NUM, g_DEN */
-void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC) {
+void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, long long *pDisc) {
 	long long A, B, C, M, P, T, Z;
-	mpz_int Dp_P, Dp_M, Dp_Z, Dp_G, Dp_K, Dp_zz;
+	mpz_int Dp_P, Dp_M, Dp_Z, Dp_G, Dp_K, Dp_zz, Disc;
 	bool NUMis0;
 
+	//A = MulPrToLong(BiA);            // assume that Dp_A will fit int 64 bits
+	//B = MulPrToLong(BiB);
+	//C = MulPrToLong(BiC);
 
-	A = DoublePrecToLong(BiA);            // assume that Dp_A will fit int 64 bits
-	B = DoublePrecToLong(BiB);
-	C = DoublePrecToLong(BiC);
-	g_Disc = B*B - 4 * A*C;                        // Discriminant = B^2 -4AC
-
+	Disc = BiB*BiB - 4 * BiA*BiC;
+	//*pDisc = B*B - 4 * A*C;           
+	*pDisc = MulPrToLong(Disc);         // Discriminant = B^2 -4AC (this is used later by caller)
 	g_NUM = -BiB;                    
 	NUMis0 = (g_NUM == 0);					/* check whether NUM == 0 */
 	g_DEN = BiA*2;        
@@ -672,7 +684,7 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC) {
 		if (!NUMis0) {
 			std::cout << "(";
 		}
-		printf("Sqrt(%lld) ", g_Disc);
+		printf("Sqrt(%lld) ", *pDisc);
 		if (!NUMis0) {  // print NUM if it's not zero
 			gmp_printf("%+Zd) ", ZT(g_NUM));  // print num with sign + or -
 		}
@@ -686,11 +698,12 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC) {
 		putchar('\n');
 	}
 
-	gcd(g_NUM, g_DEN, &Dp_G);          // Dp_G = gcd(NUM,DEN)
-	Dp_Z = Dp_G * Dp_G;				   // Dp_Z = Dp_G^2 = gcd(NUM,DEN)^2
-	Dp_G = g_Disc; 					   // Dp_G = Disc = B^2-4AC
-	gcd(Dp_Z, Dp_G, &Dp_G);	           // Dp_G = gcd(NUM^2, DEN^2, Disc)
-	A = DoublePrecToLong(Dp_G);        // convert gcd. assume that gcd fit into 64 bits!! 
+	gcd(g_NUM, g_DEN, &Dp_G);          // Dp_G = gcd(NUM,DEN) = gcd (B,2*A)
+	Dp_Z = Dp_G * Dp_G;				   // Dp_Z = gcd(NUM,DEN)^2
+	//Dp_G = Disc; 					   // Dp_G = Disc = B^2-4AC
+	//Dp_G = BiB*BiB - 4 * BiA*BiC;      // calculate discriminant.
+	gcd(Dp_Z, Disc, &Dp_G);	           // Dp_G = gcd(NUM^2, DEN^2, Disc)
+	A = MulPrToLong(Dp_G);        // convert gcd. assume that gcd fit into 64 bits!! 
 	B = 1;
 	T = 3;
 
@@ -707,7 +720,7 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC) {
 		T += 2;
 	}
 	/* B is the product of the factors removed from A (which is the GCD of NUM^2, DEN^2 , Disc)*/
-	g_Disc /= B*B;
+	*pDisc /= B*B;
 	DivLargeNumber(g_NUM, B, &g_NUM);   // NUM /= B (floor division)
 	DivLargeNumber(g_DEN, B, &g_DEN);   // DEN /= B (floor division)
 
@@ -717,7 +730,7 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC) {
 		if (!DENis1 && !NUMis0) {
 			printf("(");
 		}
-		printf("Sqrt(%lld)", g_Disc);
+		printf("Sqrt(%lld)", *pDisc);
 		if (!NUMis0) {
 			gmp_printf("%+Zd", ZT(g_NUM));   // print NUM with sign + or - 
 		}
@@ -737,10 +750,10 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC) {
 
 		putchar('\n');
 	}
-	g_Disc *= B*B;
+	*pDisc *= B*B;
 	g_NUM = -BiB;                       
 	g_DEN = BiA*2;       
-	SqrtDisc = llSqrt(g_Disc);
+	SqrtDisc = llSqrt(*pDisc);
 
 	/* temporary */
 	/*std::cout << "**temp** getroot: BiA=" << BiA;
@@ -778,18 +791,18 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC) {
 				/*  is M > 0 and M <= SqrtDisc ?*/	{
 
 				putchar('\n');
-				B = P = DoublePrecToLong(Dp_P);
-				C = M = DoublePrecToLong(Dp_M);
+				B = P = MulPrToLong(Dp_P);
+				C = M = MulPrToLong(Dp_M);
 				cont = 0;
 			}
 			if (cont >= 0) {
-				P = (g_Disc - M*M) / P;  /* both numerator and denominator are positive */
+				P = (*pDisc - M*M) / P;  /* both numerator and denominator are positive */
 				Z = (SqrtDisc + M) / P;
 				M = Z*P - M;
 				cont++;
 			}
 			else {
-				Dp_Z = g_Disc;      
+				Dp_Z = *pDisc;      
 				Dp_G = Dp_M * Dp_M;   
 				Dp_G = Dp_Z - Dp_G;   // G = Disc-M^2
 				DivideDoublePrecLong(Dp_G, Dp_P, &Dp_K);  // K=G/P
@@ -891,9 +904,9 @@ long long DivideGcd(long long P, long long Q, long long R, long long S,
 //}
 
 int Comparev(const void * Bi_array, const mpz_t Bi_K1) {
-	mpz_t temp;
-	memcpy(temp, Bi_array, sizeof(mpz_t));
-	return mpz_cmp(temp, Bi_K1);
+	mpz_t tempZ;
+	memcpy(tempZ, Bi_array, sizeof(mpz_t));
+	return mpz_cmp(tempZ, Bi_K1);
 }
 
 /* Insert new number into sorted solutions vector                             */
@@ -1326,6 +1339,7 @@ void ShowElipSol(long long A, long long B, long long D, long long u, std::string
 		std::cout << " = " << w2 << "\n";
 		std::cout << par1(2 * A) << x << " = " << (w2 - D - B*u) << "\n";
 		if ((w2 - D - B*u) % (2 * A) == 0) {
+
 			std::cout << x << " = " << ((w2 - D - B*u) / (2 * A));
 		}
 		else {
@@ -1334,9 +1348,12 @@ void ShowElipSol(long long A, long long B, long long D, long long u, std::string
 	}
 	if ((w2 - D - B*u) % (2 * A) == 0) {
 		if (teach) {
-			putchar('\n');
+			std::cout << "\n-----------------------------------\n";
 		}
 		ShowXY((w2 - D - B*u) / (2 * A), u);        // display solution
+		if (teach) {
+			std::cout << "-----------------------------------";
+		}
 		putchar('\n');
 		also = true;
 	}
@@ -1344,13 +1361,13 @@ void ShowElipSol(long long A, long long B, long long D, long long u, std::string
 
 /* called from solveEquation
 type = hyperbolic_homog (homogenous) or hyperbolic_gen (general hyperbolic)
-uses global variables g_A, g_B, g_C, Bi_R*/
+uses global variables A, B, g_C, Bi_R*/
 void ShowRecursion(equation_class type) {
 	const std::string t1 = " integer solution of the equation \nm" + sq + " + bmn + acn" + sq + " = ";
 	mpz_int Dp_A, Dp_B, Dp_C;
+	long long Disc;
 
-
-	/*std::cout << "**temp ShowRecursion A=" << g_A << " B=" << g_B << " C=" << g_C << " Bi_R=";
+	/*std::cout << "**temp ShowRecursion A=" << A << " B=" << B << " C=" << g_C << " Bi_R=";
 	ShowLargeNumber(Bi_R);
 	std::cout << " type=" << type << "\n";*/
 
@@ -1369,15 +1386,15 @@ void ShowRecursion(equation_class type) {
 		printf(" = 1. \n");
 	}
 
-	//Dp_A = g_A;        
+	//Dp_A = A;        
 	//Dp_B = g_C; 
-	Dp_C = g_A * g_C;    // Dp_C = A*C
+	//Dp_C = g_A * g_C;    // Dp_C = A*C
 	//Dp_A = 1;          
-	//Dp_B = g_B; 
+	//Dp_B = B; 
 	//GetRoot(Dp_A, Dp_B, Dp_C);          /* return values in Disc, SqrtDisc, g_NUM, g_DEN */
-	//ContFrac(Dp_A, 2, 1, 0, 0, 1, g_A);
-	GetRoot(1, g_B, Dp_C);          /* return values in Disc, SqrtDisc, g_NUM, g_DEN, used by ContFrac */
-	ContFrac(1, 2, 1, 0, 0, 1, g_A);
+	//ContFrac(Dp_A, 2, 1, 0, 0, 1, A);
+	GetRoot(1, g_B, g_A * g_C, &Disc);          /* return values in Disc, SqrtDisc, g_NUM, g_DEN, used by ContFrac */
+	ContFrac(1, 2, 1, 0, 0, 1, g_A, Disc);
 
 	if (teach) {
 		std::cout << "An" << t1;
@@ -1388,16 +1405,16 @@ void ShowRecursion(equation_class type) {
 	ShowRecursionRoot(type);
 
 	/* big problem here!! it prints rubbish values!! */
-	//if (g_B != 0) {
+	//if (B != 0) {
 	//	if (teach) {
 	//		std::cout << "\nAnother" << t1;
-	//		ShowEq(1, g_B, g_A*g_C, 0, 0, 0, "m", "n");
+	//		ShowEq(1, B, A*g_C, 0, 0, 0, "m", "n");
 	//		printf(" = 1 is: \n");
 	//	}
 	//	else {
 	//		printf("\nas well as\n");
 	//	}
-	//	MultAddLargeNumbers(1, Bi_R, g_B, Bi_s, Bi_R); /* r <- r + Bs */
+	//	MultAddLargeNumbers(1, Bi_R, B, Bi_s, Bi_R); /* r <- r + Bs */
 	//	ChangeSign(Bi_s);            /* s <- -s */
 	//	ShowRecursionRoot(type);
 	//}
@@ -1443,12 +1460,12 @@ void SolByFact(long long R, long long T, long long B, long long D, long long E) 
 
 /* The discriminant is a perfect square;
 the equation can be represented as the product of 2 linear expressions.
-uses global variables g_A, g_B, g_D, g_CY0, g_CY1 */
+uses global variables A, B, g_D, g_CY0, g_CY1 */
 void SolveDiscIsSq(long long N0, std::string x, std::string y, long long SqrtD, long long g, long long h,
 	long long N1, std::string y1, std::string x1) {
 	long long Yc = llSqrt(g / h);
 	long long Xc = llSqrt(abs(g_CY1 / h));
-	long long temp, Fact1, Fact2, X1, Y1;
+	long long tempL, Fact1, Fact2, X1, Y1;
 
 	if (teach) {
 		printf("(");
@@ -1466,7 +1483,7 @@ void SolveDiscIsSq(long long N0, std::string x, std::string y, long long SqrtD, 
 
 		/* If SqrtD is not zero perform loop twice, 2nd time with sign of Xc reversed
 		if SqrtD is zero,  for loop is only executed once. */
-		for (temp = (SqrtD == 0 ? 1 : 0); temp<2; temp++) {
+		for (tempL = (SqrtD == 0 ? 1 : 0); tempL<2; tempL++) {
 			if (teach) {
 				//w("<LI>");
 				ShowLin(Yc, Xc, 0, y1, x1);
@@ -1539,7 +1556,7 @@ void SolveDiscIsSq(long long N0, std::string x, std::string y, long long SqrtD, 
 }
 
 /* called from solveEquation
-uses global variables g_B, g_D, g_E and g_F*/
+uses global variables B, g_D, g_E and g_F*/
 void SolveSimpleHyperbolic(void) {
 	/* simple hyperbolic; A = C = 0; B ≠ 0 */
 	long long R, S, T;
@@ -1606,7 +1623,7 @@ void SolveSimpleHyperbolic(void) {
 	}
 
 	if (g_E%g_B == 0) {
-		/*Xi = -g_E / g_B; 
+		/*Xi = -g_E / B; 
 		Xl = 0; 
 		Yi = 0; 
 		Yl = 1;*/
@@ -1615,14 +1632,14 @@ void SolveSimpleHyperbolic(void) {
 	if (g_D%g_B == 0) {
 		//Xi = 0; 
 		//Xl = 1; 
-		//Yi = -g_D / g_B; 
+		//Yi = -g_D / B; 
 		//Yl = 0;
 		PrintLinear(0, 1, -g_D/g_B, 0, "t");
 	}
 	return;
 }
 
-/* uses global variables g_A, g_B, g_C, g_D, g_E, g_F*/
+/* uses global variables A, B, g_C, g_D, g_E, g_F*/
 void SolveParabolic(std::string x, std::string y, std::string x1) {
 	int t;
 	std::string t1;
@@ -1849,7 +1866,7 @@ void SolveParabolic(std::string x, std::string y, std::string x1) {
 	return;   /* end of specific processing for parabolic case*/
 }
 
-/* uses global variables g_A, g_B, g_C, g_D, g_E, g_F */
+/* uses global variables A, B, g_C, g_D, g_E, g_F */
 void SolveElliptical(std::string x, std::string x1, std::string y) {
 	int b;
 	long long u, w1, w2, g;
@@ -1952,11 +1969,12 @@ void SolveElliptical(std::string x, std::string x1, std::string y) {
 
 /* determine type of equation. Also some basic checks for cases where there is no solution,
 divide all coefficients by their gcd if gcd > 1, and calculate the discriminant */
-equation_class	classify() {
+equation_class	classify(const long long a, const long long b, const long long c,
+	const long long d, const long long e, const long long f) {
 	long long gcdA_E;
 
 	/* get gcd of A, B, C, D, E. gcd = zero only if they are all zero*/
-	gcdA_E = gcd(g_A, gcd(g_B, gcd(g_C, gcd(g_D, g_E))));
+	gcdA_E = gcd(a, gcd(b, gcd(c, gcd(d, e))));
 	if (teach) {
 		std::cout << "First of all we must determine the gcd of all coefficients but the constant term." << "\n";
 		std::cout << "that is : gcd (" << g_A << ", " << g_B << ", " << g_C << ", " << g_D << ", " << g_E << ") = "
@@ -1964,24 +1982,32 @@ equation_class	classify() {
 	}
 	if (gcdA_E != 0) {
 		/* protect against divide-by-zero error */
-		if (g_F%gcdA_E != 0) {
-			NoGcd(g_F);    // output message - no solution 
+		if (f%gcdA_E != 0) {
+			NoGcd(f);    // output message - no solution 
 			return no_soln;
 		}
 		else {
-			/* divide all coefficients by gcd */
-			g_A /= gcdA_E;
-			g_B /= gcdA_E;
-			g_C /= gcdA_E;
-			g_D /= gcdA_E;
-			g_E /= gcdA_E;
-			g_F /= gcdA_E;
+			/* divide all coefficients by gcd, set global values */
+			g_A = a/gcdA_E;
+			g_B = b/gcdA_E;
+			g_C = c/gcdA_E;
+			g_D = d/gcdA_E;
+			g_E = e/gcdA_E;
+			g_F = f/gcdA_E;
 			if (teach && (gcdA_E != 1)) {
 				std::cout << divgcd;    // show new values after division by gcd
 				ShowEq(g_A, g_B, g_C, g_D, g_E, g_F, "x", "y");
 				printf(" = 0\n");
 			}
 		}
+	}
+	else {  /* gcd = 0, presumably a-f are all 0 */
+		g_A = a;           // x² coefficient
+		g_B = b;           // xy coefficient 
+		g_C = c;           // y² coefficient
+		g_D = d;           // x coefficient
+		g_E = e;           // y coefficient
+		g_F = f;           // constant
 	}
 
 	if (g_D == 0 && g_A != 0 && g_C != 0)
@@ -1992,9 +2018,13 @@ equation_class	classify() {
 		if (CheckMod(g_B, g_C, g_A, g_D, g_F))
 			return no_soln;
 
-	g_Disc = g_B*g_B - 4 * g_A*g_C; // get discriminant
-	if (g_Disc > 0 &&
-		llSqrt(g_Disc)*llSqrt(g_Disc) != g_Disc &&
+	
+	Dp_Disc = g_B*g_B - 4 * g_A*g_C; // get discriminant
+	g_Disc = MulPrToLong(Dp_Disc);  // temporary??
+
+	if (Dp_Disc > 0 &&
+		//llSqrt(g_Disc)*llSqrt(g_Disc) != g_Disc &&
+		mpz_perfect_square_p(ZT(Dp_Disc)) == 0 &&
 		g_D == 0 && g_E == 0 && g_F != 0)
 		return hyperbolic_homog;  /* Disc is not a perfect square  and D, E are 0, and F is non-zero.
 								  this is a type of homogeneous equation*/
@@ -2021,10 +2051,10 @@ equation_class	classify() {
 		printf("There are solutions, so we must continue.\n");
 	}
 
-	if (g_Disc == 0)
+	if (Dp_Disc == 0)
 		return parabolic;
 
-	if (g_Disc < 0)
+	if (Dp_Disc < 0)
 		return elliptical;
 
 	return hyperbolic_gen;  // hyperbolic, not in other hyperbolic classes above
@@ -2061,18 +2091,18 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 	NbrSols = 0;
 	NbrCo = -1;
 	also = false;
-	g_A = ax2;           // x² coefficient
-	g_B = bxy;           // xy coefficient 
-	g_C = cy2;           // y² coefficient
-	g_D = dx;            // x coefficient
-	g_E = ey;            // y coefficient
-	g_F = f;             // constant
+	//A = ax2;           // x² coefficient
+	//B = bxy;           // xy coefficient 
+	//g_C = cy2;           // y² coefficient
+	//g_D = dx;            // x coefficient
+	//g_E = ey;            // y coefficient
+	//g_F = f;             // constant
 
 	std::cout << "\nSolve Diophantine equation:   ";
-	ShowEq(g_A, g_B, g_C, g_D, g_E, g_F, "x", "y");
+	ShowEq(ax2, bxy, cy2, dx, ey, f, "x", "y");
 	printf("  =  0\n by Dario Alejandro Alpern\n");
 
-	equation_class eqnType = classify();   /* get equation type */
+	equation_class eqnType = classify(ax2, bxy, cy2, dx, ey, f);   /* get equation type */
 
 	if (g_A == 0 && g_C != 0) {
 		T = g_A;   /* swap A and C */
@@ -2120,16 +2150,16 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 		/* solve using continued fractions */
 		g_Disc = g_B*g_B - 4 * g_A*g_C; // get discriminant again
 
-		/*Dp_A = g_A;    
-		Dp_B = g_B; 
+		/*Dp_A = A;    
+		Dp_B = B; 
 		Dp_C = g_C; */
 
 		teachaux = teach;  // save value of teach
 		if (abs(g_F) != 1) {
 			teach = false;
 		}
-		GetRoot(g_A, g_B, g_C);       //  sneaky!! values returned in 
-										 // global vars are used by SolContFrac
+		GetRoot(g_A, g_B, g_C, &g_Disc);       //  sneaky!! values returned in 
+										 // Disc, SqrtDisc, g_NUM, g_DEN, used by SolContFrac
 		teach = teachaux;    // restore saved value of teach
 
 		G = H = g_F;
@@ -2184,7 +2214,7 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 	}
 
 						  
-	case hyperbolic_gen: {  /* equation fits none of theother categories */
+	case hyperbolic_gen: {  /* equation fits none of the other categories */
 		/* B^2 - 4AC > 0. There are a couple of special cases:
 		(1)   B^2 - 4AC is a perfect square
 		(2) N0 (calculated below) is zero
@@ -2305,15 +2335,15 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 
 		/* Solve by continued fractions.
 		Firstly, test if we need two cycles or four cycles */
-		//Dp_A = g_A;      
+		/*Dp_A = g_A;      
 		Dp_C = g_A * g_C; 
-	/*	Dp_A = 1; 
+		Dp_A = 1; 
 		Dp_B = g_B; */
-		GetRoot(1, g_B, Dp_C);           //  sneaky!! values returned in 
-											 // global vars are used by ContFrac
+		GetRoot(1, g_B, g_A * g_C, &g_Disc);           //  sneaky!! values returned in 
+											 // Disc, SqrtDisc, g_NUM, g_DEN, used by ContFrac
 		//Dp_A = g_A; 
 
-		ContFrac(g_A, 5, 1, 0, g_B*g_B - 4 * g_A*g_C, 1, g_A); /* A2, B2 solutions */
+		ContFrac(g_A, 5, 1, 0, g_B*g_B - 4 * g_A*g_C, 1, g_A, g_Disc); /* A2, B2 solutions */
 
 		g_Disc = g_B*g_B - 4 * g_A*g_C;        // calculate discriminant again
 		G = (2 * g_A2 + g_B*g_B2) % g_Disc;    // note: g_A2, g_B2 set by ContFrac
@@ -2326,17 +2356,17 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 			//std::cout << "**temp SolveEquation  NbrCo=" << NbrCo << "\n";
 		}
 
-		Dp_A = NegDisc / g / h;     
+		//Dp_A = NegDisc / g / h;     
 		//Dp_B = 0;                
-		Dp_C = g / h; 
-		GetRoot(Dp_A, 0, Dp_C);
+		//Dp_C = g / h; 
+		GetRoot(NegDisc / g / h, 0, g / h, &g_Disc);  // values returned in Disc, SqrtDisc, g_NUM, g_DEN, used by SolContFrac
+
 		G = H = -N0 / h;
 		K = 1;
 		T = 3;
-
-		/* remove any double factors from G, add to K*/
-		while (G % 4 == 0) {
-			G /= 4;
+		/* remove any double factors from G, add same factor to to K*/
+		while (G % 4 == 0) {   // 1st check for factor 2
+			G /= 4;   
 			K *= 2;
 		}
 		while (abs(G) >= T*T) {     // remove odd factors
@@ -2346,15 +2376,16 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 			T += 2;    // advance to next odd number
 		}
 
+		/* find all divisors of K */
 		for (T = 1; T*T <= K; T++) {
 			if (K%T == 0) {
-				/* call SolContFrac for each divisor of K  <= sqrt(k) */
+				/* call SolContFrac for each divisor of K  <= sqrt(K) */
 				SolContFrac(H, T, NegDisc / g / h, 0, g / h, "'");
 			}
 		}
 		for (T = T - 1; T > 0; T--) {
 			if (K%T == 0 && T*T < K) {
-				/* call SolContFrac for each divisor of K  > sqrt(k) */
+				/* call SolContFrac for each divisor of K  > sqrt(K) */
 				SolContFrac(H, K / T, NegDisc / g / h, 0, g / h, "'");
 			}
 		}
@@ -2576,6 +2607,10 @@ int main(int argc, char* argv[]) {
 			std::cout << "\nElliptical, no solutions\n";
 			a = 1; b = 0; c = 1; d = -0; e = 0; f = -6;
 			solveEquation(a, b, c, d, e, f);
+
+			std::cout << "\nHyperbolic homogeneous - no solutions\n";
+			a = 1; b = 0; c = -34; d = -0; e = 0; f = 1;
+			solveEquation(a, b, c, d, e, f);
 		}
 
 		system("PAUSE");   // press any key to continue
@@ -2592,7 +2627,7 @@ int main(int argc, char* argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	catch (const char * str)
+	catch (const char *str)
 	{
 		std::cerr << "Caught exception: " << str << std::endl;
 		Beep(1200, 1000);              // sound at 1200 Hz for 1 second
@@ -2600,7 +2635,7 @@ int main(int argc, char* argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	catch (...) {   // catch block should only be executed under /EHa 
+	catch (...) {   // catch block pobably only be executed under /EHa 
 					/* most likely to be a SEH-type exception */
 					//Eval_Exception(GetExceptionCode());
 		std::cerr << "Caught unknown exception in catch(...)." << std::endl;
