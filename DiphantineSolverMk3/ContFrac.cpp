@@ -313,13 +313,14 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 		std::cout << "  Dp_P1=" << Dp_P1 << "\n";*/
 
 		do {
-			Dp_Z = Disc;  
-			//std::cout << "**temp ContFrac  Dp_Z=" << Dp_Z << " (3D)\n";
+			//Dp_Z = Disc;  
+			////std::cout << "**temp ContFrac  Dp_Z=" << Dp_Z << " (3D)\n";
 
-			Dp_G = Dp_M * Dp_M; 
-			//std::cout << "**temp ContFrac  Dp_G=" << Dp_G << "(3D)\n";
+			//Dp_G = Dp_M * Dp_M; 
+			////std::cout << "**temp ContFrac  Dp_G=" << Dp_G << "(3D)\n";
 
-			Dp_G = Dp_Z - Dp_G;     // G = Z-G  = Disc -M*M
+			//Dp_G = Dp_Z - Dp_G;     
+			Dp_G = Disc - Dp_M * Dp_M;        // G = Z-G  = Disc -M*M
 			//std::cout << "**temp ContFrac  Dp_G=" << Dp_G << " (3E)\n";
 
 			DivLargeNumberRem(Dp_G, Dp_P, &Dp_P1);  // P1 = (Disc-M*M)/P

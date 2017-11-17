@@ -39,7 +39,7 @@ std::string numToStr(long long num);        // same name, does same job, but for
 std::string par(long long num);
 void ShowLin(long long D, long long E, long long F, std::string x, std::string y);
 bool ContFrac(const mpz_int Dp_A, int type, int SqrtSign, long long s, long long T,
-	long long MagnifY, long long A, const long long g_Disc);
+	long long MagnifY, long long A, const long long Disc);
 void ShowAllLargeSolutions();
 void ShowEq(long long A, long long B, long long C, long long D, long long E, long long F,
 	std::string x, std::string y);

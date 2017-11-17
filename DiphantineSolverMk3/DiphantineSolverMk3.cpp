@@ -672,19 +672,19 @@ long long MulPrToLong(const mpz_int x) {
 
 
 /* prepare for solving by continued fractions.
-return values in global variables Disc, SqrtDisc, g_NUM, g_DEN */
+return values in global variables pDisc, SqrtDisc, g_NUM, g_DEN */
 void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, long long *pDisc) {
 	long long A, B, C, M, P, T, Z;
-	mpz_int Dp_P, Dp_M, Dp_Z, Dp_G, Dp_K, Dp_zz, Disc;
+	mpz_int BiP, BiM, BiZ, BiG, BiK, BiDisc;
 	bool NUMis0;
 
 	//A = MulPrToLong(BiA);            // assume that Dp_A will fit int 64 bits
 	//B = MulPrToLong(BiB);
 	//C = MulPrToLong(BiC);
 
-	Disc = BiB*BiB - 4 * BiA*BiC;
+	BiDisc = BiB*BiB - 4 * BiA*BiC;
 	//*pDisc = B*B - 4 * A*C;           
-	*pDisc = MulPrToLong(Disc);         // Discriminant = B^2 -4AC (this is used later by caller)
+	*pDisc = MulPrToLong(BiDisc);         // Discriminant = B^2 -4AC (this is used later by caller)
 	g_NUM = -BiB;                    
 	NUMis0 = (g_NUM == 0);					/* check whether NUM == 0 */
 	g_DEN = BiA*2;        
@@ -710,16 +710,16 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, long long 
 		putchar('\n');
 	}
 
-	gcd(g_NUM, g_DEN, &Dp_G);          // Dp_G = gcd(NUM,DEN) = gcd (B,2*A)
-	Dp_Z = Dp_G * Dp_G;				   // Dp_Z = gcd(NUM,DEN)^2
-	//Dp_G = Disc; 					   // Dp_G = Disc = B^2-4AC
-	//Dp_G = BiB*BiB - 4 * BiA*BiC;      // calculate discriminant.
-	gcd(Dp_Z, Disc, &Dp_G);	           // Dp_G = gcd(NUM^2, DEN^2, Disc)
-	A = MulPrToLong(Dp_G);        // convert gcd. assume that gcd fit into 64 bits!! 
+	gcd(g_NUM, g_DEN, &BiG);           // BiG = gcd(NUM,DEN) = gcd (B,2*A)
+	BiZ = BiG * BiG;				   // BiZ = gcd(NUM,DEN)^2
+	//BiG = BiDisc; 				   // BiG = BiDisc = B^2-4AC
+	//BiG = BiB*BiB - 4 * BiA*BiC;     // calculate discriminant.
+	gcd(BiZ, BiDisc, &BiG);	           // BiG = gcd(NUM^2, DEN^2, BiDisc)
+	A = MulPrToLong(BiG);        // convert gcd. assume that gcd fit into 64 bits!! 
 	B = 1;
 	T = 3;
 
-	// remove any repeated factors from A (=Dp_G), put sqrt(product of repeated factors) in B
+	// remove any repeated factors from A (=BiG), put sqrt(product of repeated factors) in B
 	while (A % 4 == 0) {
 		A /= 4;   // remove factor 2^2
 		B *= 2;
@@ -731,8 +731,8 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, long long 
 		}
 		T += 2;
 	}
-	/* B is the product of the factors removed from A (which is the GCD of NUM^2, DEN^2 , Disc)*/
-	*pDisc /= B*B;
+	/* B is the product of the factors removed from A (which is the GCD of NUM^2, DEN^2 , BiDisc)*/
+
 	DivLargeNumber(g_NUM, B, &g_NUM);   // NUM /= B (floor division)
 	DivLargeNumber(g_DEN, B, &g_DEN);   // DEN /= B (floor division)
 
@@ -742,7 +742,7 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, long long 
 		if (!DENis1 && !NUMis0) {
 			printf("(");
 		}
-		printf("Sqrt(%lld)", *pDisc);
+		printf("Sqrt(%lld)", *pDisc/(B*B));
 		if (!NUMis0) {
 			gmp_printf("%+Zd", ZT(g_NUM));   // print NUM with sign + or - 
 		}
@@ -762,10 +762,10 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, long long 
 
 		putchar('\n');
 	}
-	*pDisc *= B*B;
+
 	g_NUM = -BiB;                       
 	g_DEN = BiA*2;       
-	SqrtDisc = llSqrt(Disc);
+	SqrtDisc = llSqrt(BiDisc);
 
 	/* temporary */
 	/*std::cout << "**temp** getroot: BiA=" << BiA;
@@ -773,20 +773,20 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, long long 
 	std::cout << " BiC=" << BiC;
 	std::cout << " g_NUM=" << g_NUM;
 	std::cout << " g_DEN=" << g_DEN;
-	std::cout << " SqrtDisc =" << SqrtDisc << "  Disc =" << Disc << "\n";*/
+	std::cout << " SqrtDisc =" << SqrtDisc << "  BiDisc =" << BiDisc << "\n";*/
 	/* end temporary */
 
 	if (teach) {
 		printf("The continued fraction expansion is: \n");
-		Dp_P = g_DEN;  //mpz_set(Dp_P, g_DEN);   
+		BiP = g_DEN;  //mpz_set(BiP, g_DEN);   
 
 		/* if DEN >= 0 then K = SqrtDisc else K = SqrtDisc+1 */
-		Dp_K = SqrtDisc + ((g_DEN < 0) ? 1 : 0); 
-		Dp_K += g_NUM; 
-		Z = DivLargeNumberLL(Dp_K, g_DEN);      // Z = K/DEN
-		Dp_M = Z;             // M = K/DEN
-		Dp_K = Dp_M * g_DEN;    // K = M*DEN
-		Dp_M = Dp_K - g_NUM;    // M = K-NUM
+		BiK = SqrtDisc + ((g_DEN < 0) ? 1 : 0); 
+		BiK += g_NUM; 
+		Z = DivLargeNumberLL(BiK, g_DEN);      // Z = K/DEN
+		BiM = Z;             // M = K/DEN
+		BiK = BiM * g_DEN;    // K = M*DEN
+		BiM = BiK - g_NUM;    // M = K-NUM
 												 
 		printf("%lld", Z);
 		std::string sep = "+ //";
@@ -797,14 +797,14 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, long long 
 			std::cout << sep;
 			sep = ", ";
 
-			if (cont<0 && (Dp_P > 0) && (Dp_P < SqrtDisc + Dp_M)
+			if (cont<0 && (BiP > 0) && (BiP < SqrtDisc + BiM)
 				/*  is P > 0 and P < SqrtDisc+M ?*/
-				&& (Dp_M > 0) && (Dp_M <= SqrtDisc))
+				&& (BiM > 0) && (BiM <= SqrtDisc))
 				/*  is M > 0 and M <= SqrtDisc ?*/	{
 
 				putchar('\n');
-				B = P = MulPrToLong(Dp_P);
-				C = M = MulPrToLong(Dp_M);
+				B = P = MulPrToLong(BiP);
+				C = M = MulPrToLong(BiM);
 				cont = 0;
 			}
 			if (cont >= 0) {
@@ -814,17 +814,17 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, long long 
 				cont++;
 			}
 			else {
-				Dp_Z = *pDisc;      
-				Dp_G = Dp_M * Dp_M;   
-				Dp_G = Dp_Z - Dp_G;   // G = Disc-M^2
-				DivLargeNumberRem(Dp_G, Dp_P, &Dp_K);  // K=G/P
-				Dp_P = Dp_K;                  
-				Dp_Z = SqrtDisc + ((Dp_P < 0) ? 1 : 0); 
-				Dp_K = Dp_Z + Dp_M; 
-				Z = DivLargeNumberLL(Dp_K, Dp_P);
-				Dp_G = Z; 
-				Dp_Z = Dp_G * Dp_P; 
-				Dp_M = Dp_Z - Dp_M; 
+				BiZ = *pDisc;      
+				BiG = BiM * BiM;   
+				BiG = BiZ - BiG;   // G = BiDisc-M^2
+				DivLargeNumberRem(BiG, BiP, &BiK);  // K=G/P
+				BiP = BiK;                  
+				BiZ = SqrtDisc + ((BiP < 0) ? 1 : 0); 
+				BiK = BiZ + BiM; 
+				Z = DivLargeNumberLL(BiK, BiP);
+				BiG = Z; 
+				BiZ = BiG * BiP; 
+				BiM = BiZ - BiM; 
 			}
 			printf("%lld", Z);
 		}
@@ -1403,9 +1403,9 @@ void ShowRecursion(equation_class type) {
 	//Dp_C = g_A * g_C;    // Dp_C = A*C
 	//Dp_A = 1;          
 	//Dp_B = B; 
-	//GetRoot(Dp_A, Dp_B, Dp_C);          /* return values in Disc, SqrtDisc, g_NUM, g_DEN */
+	//GetRoot(Dp_A, Dp_B, Dp_C);          /* return values in BiDisc, SqrtDisc, g_NUM, g_DEN */
 	//ContFrac(Dp_A, 2, 1, 0, 0, 1, A);
-	GetRoot(1, g_B, g_A * g_C, &Disc);          /* return values in Disc, SqrtDisc, g_NUM, g_DEN, used by ContFrac */
+	GetRoot(1, g_B, g_A * g_C, &Disc);          /* return values in BiDisc, SqrtDisc, g_NUM, g_DEN, used by ContFrac */
 	ContFrac(1, 2, 1, 0, 0, 1, g_A, Disc);
 
 	if (teach) {
@@ -2038,7 +2038,7 @@ equation_class	classify(const long long a, const long long b, const long long c,
 		//llSqrt(g_Disc)*llSqrt(g_Disc) != g_Disc &&
 		mpz_perfect_square_p(ZT(Dp_Disc)) == 0 &&
 		g_D == 0 && g_E == 0 && g_F != 0)
-		return hyperbolic_homog;  /* Disc is not a perfect square  and D, E are 0, and F is non-zero.
+		return hyperbolic_homog;  /* BiDisc is not a perfect square  and D, E are 0, and F is non-zero.
 								  this is a type of homogeneous equation*/
 
 	if (g_A == 0 && g_C == 0) {
@@ -2160,18 +2160,18 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 	case hyperbolic_homog: {
 
 		/* solve using continued fractions */
-		g_Disc = g_B*g_B - 4 * g_A*g_C; // get discriminant again
+		//g_Disc = g_B*g_B - 4 * g_A*g_C; // get discriminant again
 
 		/*Dp_A = A;    
 		Dp_B = B; 
 		Dp_C = g_C; */
 
-		teachaux = teach;  // save value of teach
+		teachaux = teach;  
 		if (abs(g_F) != 1) {
-			teach = false;
+			teach = false;   // save value of teach
 		}
 		GetRoot(g_A, g_B, g_C, &g_Disc);       //  sneaky!! values returned in 
-										 // Disc, SqrtDisc, g_NUM, g_DEN, used by SolContFrac
+										 // BiDisc, SqrtDisc, g_NUM, g_DEN, used by SolContFrac
 		teach = teachaux;    // restore saved value of teach
 
 		G = H = g_F;
@@ -2352,12 +2352,12 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 		Dp_A = 1; 
 		Dp_B = g_B; */
 		GetRoot(1, g_B, g_A * g_C, &g_Disc);           //  sneaky!! values returned in 
-											 // Disc, SqrtDisc, g_NUM, g_DEN, used by ContFrac
+											 // BiDisc, SqrtDisc, g_NUM, g_DEN, used by ContFrac
 		//Dp_A = g_A; 
 
 		ContFrac(g_A, 5, 1, 0, g_B*g_B - 4 * g_A*g_C, 1, g_A, g_Disc); /* A2, B2 solutions */
 
-		g_Disc = g_B*g_B - 4 * g_A*g_C;        // calculate discriminant again
+		g_Disc = MulPrToLong(Dp_Disc);         // calculate discriminant again
 		G = (2 * g_A2 + g_B*g_B2) % g_Disc;    // note: g_A2, g_B2 set by ContFrac
 		H = (g_B*g_A2 + 2 * g_A*g_C*g_B2) % g_Disc;
 
@@ -2371,7 +2371,7 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 		//Dp_A = NegDisc / g / h;     
 		//Dp_B = 0;                
 		//Dp_C = g / h; 
-		GetRoot(NegDisc / g / h, 0, g / h, &g_Disc);  // values returned in Disc, SqrtDisc, g_NUM, g_DEN, used by SolContFrac
+		GetRoot(NegDisc / g / h, 0, g / h, &g_Disc);  // values returned in BiDisc, SqrtDisc, g_NUM, g_DEN, used by SolContFrac
 
 		G = H = -N0 / h;
 		K = 1;
