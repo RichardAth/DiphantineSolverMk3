@@ -26,8 +26,8 @@ void ShowLargeNumber(const mpz_int Bi_Nbr);
 long long DivLargeNumber(const mpz_int Bi_Nbr, long long Coef, mpz_int *Bi_Dest);
 long long tDivLargeNumber(const mpz_int n, long long d, mpz_int *q);
 long long MulPrToLong(const mpz_int x);
-long long DivDoublePrec(const mpz_int Dp_Dividend, const mpz_int Dp_Divisor);
-void DivideDoublePrecLong(const mpz_int Dp_Dividend, const mpz_int Dp_Divisor, mpz_int *Dp_Quotient);
+long long DivLargeNumberLL(const mpz_int Dp_Dividend, const mpz_int Dp_Divisor);
+void DivLargeNumberRem(const mpz_int Dp_Dividend, const mpz_int Dp_Divisor, mpz_int *Dp_Quotient);
 void gcd(const mpz_int Dp_Nbr1, const mpz_int Dp_Nbr2, mpz_int *Dp_Gcd);
 long long gcd(long long M, long long N);    // same name, does same job, but for normal integers
 std::string numToStr(const mpz_int Dp_Nbr);

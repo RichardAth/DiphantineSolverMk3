@@ -77,6 +77,18 @@ unsigned long long llSqrt(unsigned long long num) {
 	return num1;
 }
 
+/* get sqare root of ext prec. num. If num > 128 bits will get overflow.*/
+unsigned long long llSqrt(mpz_int num) {
+	mpz_t rv;
+	unsigned long long llrv;
+
+	assert(num >= 0);  // god knows what would happen if num were -ve
+	mpz_init(rv);
+	mpz_sqrt(rv, ZT(num));  // rv = truncated integer part of the square root
+	llrv = MulPrToLong(rv);  // convert to long long (check for overflow)
+	mpz_clear(rv);
+	return llrv;
+}
 
 /* calculate Greatest Common Divisor */
 long long gcd(long long M, long long N) {
@@ -257,7 +269,7 @@ long long floordiv(long long num, long long den) {
 i.e. rounds q down towards -infinity. The only difference from
 < DivLargeNumber> is that this function does not return a value but
 < DivLargeNumber> returns the remainder as a long long. */
-void DivideDoublePrecLong(const mpz_int n, const mpz_int d, mpz_int *q) {
+void DivLargeNumberRem(const mpz_int n, const mpz_int d, mpz_int *q) {
 	mpz_t qq;
 
 	if (d == 0) {
@@ -330,7 +342,7 @@ long long tDivLargeNumber(const mpz_int n, long long d, mpz_int *q) {
 
 /* return quotient (= n/d) as a normal integer. uses floor division.
 i.e. rounds q down towards -infinity, and r will have the same sign as d.*/
-long long DivDoublePrec(const mpz_int n, const mpz_int d) {
+long long DivLargeNumberLL(const mpz_int n, const mpz_int d) {
 	mpz_t q, r;
 	long long llquot;
 
@@ -344,7 +356,7 @@ long long DivDoublePrec(const mpz_int n, const mpz_int d) {
 	assert(mpz_fits_slong_p(q) != 0);   // is quotient too big for normal integer?
 	llquot = mpz_get_si(q);             // quotient convert to normal integer
 	if (mpz_cmp_ui(r, 0) != 0) {
-		//gmp_printf("**temp DivDoublePrec: %Zd = %Zd/%Zd  rem=%Zd \n", q, ZT(n), ZT(d), r);
+		//gmp_printf("**temp DivLargeNumberLL: %Zd = %Zd/%Zd  rem=%Zd \n", q, ZT(n), ZT(d), r);
 	}
 	mpz_clears(q, r, NULL);		           // avoid memory leakage
 	return llquot;
@@ -753,7 +765,7 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, long long 
 	*pDisc *= B*B;
 	g_NUM = -BiB;                       
 	g_DEN = BiA*2;       
-	SqrtDisc = llSqrt(*pDisc);
+	SqrtDisc = llSqrt(Disc);
 
 	/* temporary */
 	/*std::cout << "**temp** getroot: BiA=" << BiA;
@@ -761,7 +773,7 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, long long 
 	std::cout << " BiC=" << BiC;
 	std::cout << " g_NUM=" << g_NUM;
 	std::cout << " g_DEN=" << g_DEN;
-	std::cout << " SqrtDisc =" << SqrtDisc << "  Disc =" << g_Disc << "\n";*/
+	std::cout << " SqrtDisc =" << SqrtDisc << "  Disc =" << Disc << "\n";*/
 	/* end temporary */
 
 	if (teach) {
@@ -771,7 +783,7 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, long long 
 		/* if DEN >= 0 then K = SqrtDisc else K = SqrtDisc+1 */
 		Dp_K = SqrtDisc + ((g_DEN < 0) ? 1 : 0); 
 		Dp_K += g_NUM; 
-		Z = DivDoublePrec(Dp_K, g_DEN);      // Z = K/DEN
+		Z = DivLargeNumberLL(Dp_K, g_DEN);      // Z = K/DEN
 		Dp_M = Z;             // M = K/DEN
 		Dp_K = Dp_M * g_DEN;    // K = M*DEN
 		Dp_M = Dp_K - g_NUM;    // M = K-NUM
@@ -805,11 +817,11 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, long long 
 				Dp_Z = *pDisc;      
 				Dp_G = Dp_M * Dp_M;   
 				Dp_G = Dp_Z - Dp_G;   // G = Disc-M^2
-				DivideDoublePrecLong(Dp_G, Dp_P, &Dp_K);  // K=G/P
+				DivLargeNumberRem(Dp_G, Dp_P, &Dp_K);  // K=G/P
 				Dp_P = Dp_K;                  
 				Dp_Z = SqrtDisc + ((Dp_P < 0) ? 1 : 0); 
 				Dp_K = Dp_Z + Dp_M; 
-				Z = DivDoublePrec(Dp_K, Dp_P);
+				Z = DivLargeNumberLL(Dp_K, Dp_P);
 				Dp_G = Z; 
 				Dp_Z = Dp_G * Dp_P; 
 				Dp_M = Dp_Z - Dp_M; 
@@ -1977,7 +1989,7 @@ equation_class	classify(const long long a, const long long b, const long long c,
 	gcdA_E = gcd(a, gcd(b, gcd(c, gcd(d, e))));
 	if (teach) {
 		std::cout << "First of all we must determine the gcd of all coefficients but the constant term." << "\n";
-		std::cout << "that is : gcd (" << g_A << ", " << g_B << ", " << g_C << ", " << g_D << ", " << g_E << ") = "
+		std::cout << "that is : gcd (" << a << ", " << b << ", " << c << ", " << d << ", " << e << ") = "
 			<< gcdA_E << "\n";
 	}
 	if (gcdA_E != 0) {

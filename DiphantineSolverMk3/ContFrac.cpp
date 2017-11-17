@@ -246,7 +246,7 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 		}
 
 		//std::cout << "  g_DEN=" << g_DEN;
-		Z = DivDoublePrec(Dp_K, Dp_P);           // Z = K/P
+		Z = DivLargeNumberLL(Dp_K, Dp_P);           // Z = K/P
 		//std::cout << "  Dp_K=" << Dp_K << "  Dp_P=" << Dp_P << "\n";
 		Dp_M = Z;       // M = Z (=K/P)
 		Dp_K = Dp_M * g_DEN;   // K = M*DEN
@@ -322,7 +322,7 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 			Dp_G = Dp_Z - Dp_G;     // G = Z-G  = Disc -M*M
 			//std::cout << "**temp ContFrac  Dp_G=" << Dp_G << " (3E)\n";
 
-			DivideDoublePrecLong(Dp_G, Dp_P, &Dp_P1);  // P1 = (Disc-M*M)/P
+			DivLargeNumberRem(Dp_G, Dp_P, &Dp_P1);  // P1 = (Disc-M*M)/P
 			 //std::cout << "**temp ContFrac Dp_P1=" << Dp_P1 << "\n";
 
 			/* Z = SqrtDisc +(1 or 0, depending on sign of P1) */
@@ -331,7 +331,7 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 			//std::cout << "**temp ContFrac  Dp_K=" << Dp_K << "\n";
 
 			/* round Z to a multiple of P1 */
-			Z = DivDoublePrec(Dp_K, Dp_P1);        // Z = K/P1
+			Z = DivLargeNumberLL(Dp_K, Dp_P1);        // Z = K/P1
 			Dp_G = Z;         // G = Z = K/P1
 			Dp_Z = Dp_G * Dp_P1;   
 			//std::cout << "**temp ContFrac  Dp_Z=" << Dp_Z << "\n";
@@ -1005,7 +1005,7 @@ void SolContFrac(long long H, long long T, long long A, const long long B, long 
 							Dp_A = (Dp_C + B) * s;    // Dp_A = (A*s+B)s
 							Dp_T = Dp_A + C;          // Dp_T = (A*s+B)s+C
 							Dp_R = -g_F;            
-							DivideDoublePrecLong(Dp_T, Dp_R, &Dp_A);   // Dp_A = -((As+B)s+C)/F
+							DivLargeNumberRem(Dp_T, Dp_R, &Dp_A);   // Dp_A = -((As+B)s+C)/F
 
 							Dp_C *= 2;                // Dp_C = 2As
 							Dp_B = B;               
