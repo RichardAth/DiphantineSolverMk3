@@ -267,9 +267,9 @@ long long floordiv(long long num, long long den) {
 //}
 /* q = n/d. return quotient as a bigint. Uses floor division.
 i.e. rounds q down towards -infinity. The only difference from
-< DivLargeNumber> is that this function does not return a value but
-< DivLargeNumber> returns the remainder as a long long. */
-void DivLargeNumberRem(const mpz_int n, const mpz_int d, mpz_int *q) {
+< DivLargeNumberRem> is that this function does not return a value but
+< DivLargeNumberRem> returns the remainder as a long long. */
+void DivLargeNumber(const mpz_int n, const mpz_int d, mpz_int *q) {
 	mpz_t qq;
 
 	if (d == 0) {
@@ -288,7 +288,7 @@ the 3 different types of division only give different results when
 the remainder is non-zero and n or d (or both) are negative.
 NB. The choice of floor or truncation type division is sometimes
 critical, and the correct choice is not obvious. */
-long long DivLargeNumber(const mpz_int n, long long d, mpz_int *q) {
+long long DivLargeNumberRem(const mpz_int n, long long d, mpz_int *q) {
 	long long remainder;
 	mpz_t mpr, mpd, nsave, qq;
 
@@ -304,7 +304,7 @@ long long DivLargeNumber(const mpz_int n, long long d, mpz_int *q) {
 	mpz_fdiv_qr(qq, mpr, ZT(n), mpd);  // qq = n/d, mpr=remainder
 	remainder = mpz_get_si(mpr);  // magnitude of remainder is < d, so it can't overflow
 	if (remainder != 0) {
-		//gmp_printf("**temp DivLargeNumber %Zd/%lld = %Zd  rem=%lld \n", nsave, d, qq, remainder);
+		//gmp_printf("**temp DivLargeNumberRem %Zd/%lld = %Zd  rem=%lld \n", nsave, d, qq, remainder);
 	}
 	*q = qq;
 	mpz_clears(mpr, mpd, nsave, qq, NULL);
@@ -733,8 +733,8 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, long long 
 	}
 	/* B is the product of the factors removed from A (which is the GCD of NUM^2, DEN^2 , BiDisc)*/
 
-	DivLargeNumber(g_NUM, B, &g_NUM);   // NUM /= B (floor division)
-	DivLargeNumber(g_DEN, B, &g_DEN);   // DEN /= B (floor division)
+	DivLargeNumberRem(g_NUM, B, &g_NUM);   // NUM /= B (floor division)
+	DivLargeNumberRem(g_DEN, B, &g_DEN);   // DEN /= B (floor division)
 
 	if (teach && B != 1) {
 		bool DENis1 = (g_DEN == 1);  /* check whether DEN == 1*/
@@ -817,7 +817,7 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, long long 
 				BiZ = *pDisc;      
 				BiG = BiM * BiM;   
 				BiG = BiZ - BiG;   // G = BiDisc-M^2
-				DivLargeNumberRem(BiG, BiP, &BiK);  // K=G/P
+				DivLargeNumber(BiG, BiP, &BiK);  // K=G/P
 				BiP = BiK;                  
 				BiZ = SqrtDisc + ((BiP < 0) ? 1 : 0); 
 				BiK = BiZ + BiM; 

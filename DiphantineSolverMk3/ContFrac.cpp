@@ -191,7 +191,7 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 	std::cout << "g_NUM=" << g_NUM << "  g_DEN=" << g_DEN;
 	std::cout << " Disc=" << Disc << "\n";*/
 
-	long long P, Z, M, P1, M1, Tmp, K, L, Mu;
+	long long P, Z, M, P1, M1, Tmp;       // K, L, Mu; deleted
 	mpz_int Dp_P, Dp_M, Dp_Z, Dp_G, Dp_Mu, Dp_K, Dp_L, Dp_M1, Dp_P1, Dp_zz;
 	long long H1ModCY1 = 1, H2ModCY1 = 0, K1ModCY1 = 0, K2ModCY1 = 1;
 	bool Sols = true, secondDo = true;
@@ -313,28 +313,20 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 		std::cout << "  Dp_P1=" << Dp_P1 << "\n";*/
 
 		do {
-			//Dp_Z = Disc;  
-			////std::cout << "**temp ContFrac  Dp_Z=" << Dp_Z << " (3D)\n";
-
-			//Dp_G = Dp_M * Dp_M; 
-			////std::cout << "**temp ContFrac  Dp_G=" << Dp_G << "(3D)\n";
-
-			//Dp_G = Dp_Z - Dp_G;     
 			Dp_G = Disc - Dp_M * Dp_M;        // G = Z-G  = Disc -M*M
 			//std::cout << "**temp ContFrac  Dp_G=" << Dp_G << " (3E)\n";
 
-			DivLargeNumberRem(Dp_G, Dp_P, &Dp_P1);  // P1 = (Disc-M*M)/P
+			DivLargeNumber(Dp_G, Dp_P, &Dp_P1);  // P1 = (Disc-M*M)/P
 			 //std::cout << "**temp ContFrac Dp_P1=" << Dp_P1 << "\n";
 
-			/* Z = SqrtDisc +(1 or 0, depending on sign of P1) */
-			Dp_Z = SqrtDisc + ((Dp_P1 < 0) ? 1 : 0); 
-			Dp_K = Dp_M + Dp_Z;        
+ 			Dp_K = Dp_M + SqrtDisc;
+			if (Dp_P1 < 0)
+				Dp_K++;
 			//std::cout << "**temp ContFrac  Dp_K=" << Dp_K << "\n";
 
-			/* round Z to a multiple of P1 */
+			/* round Dp_Z to a multiple of P1 */
 			Z = DivLargeNumberLL(Dp_K, Dp_P1);        // Z = K/P1
-			Dp_G = Z;         // G = Z = K/P1
-			Dp_Z = Dp_G * Dp_P1;   
+			Dp_Z = Z * Dp_P1;   
 			//std::cout << "**temp ContFrac  Dp_Z=" << Dp_Z << "\n";
 
 			Dp_M1 = Dp_Z - Dp_M; 
@@ -484,9 +476,9 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 			continue;    // go to next step (paso = 2)
 		}
 
-		Mu = MulPrToLong(Dp_Mu);
-		L = MulPrToLong(Dp_L);
-		K = MulPrToLong(Dp_K);
+		//Mu = MulPrToLong(Dp_Mu);
+		//L = MulPrToLong(Dp_L);
+		//K = MulPrToLong(Dp_K);
 		M = MulPrToLong(Dp_M);
 		P = MulPrToLong(Dp_P);
 
@@ -494,8 +486,8 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 			P1 = (Disc - M*M) / P;    /* P & Q should be > 0 (See Knuth Ex 4.5.3-12) */
 			Z = (SqrtDisc + M) / P1;
 			M1 = Z*P1 - M;
-			if (type == 1 && P == Mu) {    /* Solution found */
-				if (Co % 2 == 0 || K != P1 || L != M1) {
+			if (type == 1 && P == Dp_Mu) {    /* Solution found */
+				if (Co % 2 == 0 || Dp_K != P1 || Dp_L != M1) {
 					if (Paso == 2) {
 						if (g_A2 != 0) {
 							NextConv(&Bi_H1, &Bi_H2, g_A1, g_A2, g_B1, g_B2);
@@ -537,8 +529,8 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 						Bi_K2 += Bi_K1;   
 					}
 				}
-				if (P1 == Mu) {   /* Solution found */
-					if (Co % 2 == 0 || K != P1 || L != M1) {
+				if (P1 == Dp_Mu) {   /* Solution found */
+					if (Co % 2 == 0 || Dp_K != P1 || Dp_L != M1) {
 						if (Paso == 2) {
 							if (g_A2 != 0) {
 								//std::cout << "**temp ContFrac(13B) - solution found\n";
@@ -593,7 +585,7 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 
 			M = M1;
 			P = P1;
-			if (type == 2 && P1 == Mu) {
+			if (type == 2 && P1 == Dp_Mu) {
 				NextConv(&Bi_H1, &Bi_H2, g_A1, g_A2, g_B1, g_B2);
 				NextConv(&Bi_K1, &Bi_K2, g_A1, g_A2, g_B1, g_B2);
 				Sols = true;
@@ -601,7 +593,7 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 				break;
 			}
 			if (type == 5) {
-				if (P1 == Mu) {
+				if (P1 == Dp_Mu) {
 					NbrCo = Co;
 					Sols = true;
 					//std::cout << "**temp ContFrac(18) NbrCo=" << NbrCo << "\n";
@@ -615,7 +607,7 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 					g_B2 = Tmp;
 				}
 			}
-			Mu = -Mu;
+			Dp_Mu = -Dp_Mu;
 			if (Paso == 2) {
 				if (g_A2 != 0 && Z>(quintillion / 10 - g_A1) / g_A2 || g_B2 != 0 && Z>(quintillion / 10 - g_B1) / g_B2) {
 					NextConv(&Bi_H1, &Bi_H2, g_A1, g_A2, g_B1, g_B2);
@@ -631,8 +623,8 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 			}
 			Conv++;
 			/*std::cout << "**temp ContFrac(18A) NbrCo=" << NbrCo << "  Co=" << Co;
-			std::cout << "  K=" << K << "  P=" << P << "  L=" << L << "  M=" << M << "\n";*/
-		} while (NbrCo>0 ? Co != NbrCo : Co % 2 != 0 || K != P || L != M);
+			std::cout << "  K=" << Dp_K << "  P=" << P << "  L=" << Dp_L << "  M=" << M << "\n";*/
+		} while (NbrCo>0 ? Co != NbrCo : Co % 2 != 0 || Dp_K != P || Dp_L != M);
 
 		//std::cout << "**temp ContFrac(18C)\n";
 		/* type = 5: Find convergents for x^2 + Bxy + ACy^2 = 1 (mod B^2-4AC) */
@@ -1006,7 +998,7 @@ void SolContFrac(long long H, long long T, long long A, const long long B, long 
 							Dp_A = (Dp_C + B) * s;    // Dp_A = (A*s+B)s
 							Dp_T = Dp_A + C;          // Dp_T = (A*s+B)s+C
 							Dp_R = -g_F;            
-							DivLargeNumberRem(Dp_T, Dp_R, &Dp_A);   // Dp_A = -((As+B)s+C)/F
+							DivLargeNumber(Dp_T, Dp_R, &Dp_A);   // Dp_A = -((As+B)s+C)/F
 
 							Dp_C *= 2;                // Dp_C = 2As
 							Dp_B = B;               
