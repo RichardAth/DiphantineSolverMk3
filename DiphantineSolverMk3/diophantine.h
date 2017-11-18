@@ -21,7 +21,7 @@ using namespace boost::multiprecision;
 void ShowLargeXY(std::string x, std::string y, mpz_int Bi_H1, mpz_int Bi_K1,
 	bool sol, const std::string eqX, const std::string eqY);
 bool ShowHomoSols(int type, mpz_int Bi_H1, mpz_int Bi_K1, long long s, long long T,
-	long long MagnifY, std::string eqX, std::string eqY);
+	long long MagnifY, std::string eqX, std::string eqY, const long long g_F);
 void ShowLargeNumber(const mpz_int Bi_Nbr);
 long long DivLargeNumberRem(const mpz_int Bi_Nbr, long long Coef, mpz_int *Bi_Dest);
 long long tDivLargeNumber(const mpz_int n, long long d, mpz_int *q);
@@ -39,7 +39,7 @@ std::string numToStr(long long num);        // same name, does same job, but for
 std::string par(long long num);
 void ShowLin(long long D, long long E, long long F, std::string x, std::string y);
 bool ContFrac(const mpz_int Dp_A, int type, int SqrtSign, long long s, long long T,
-	long long MagnifY, long long A, const long long Disc);
+	long long MagnifY, long long A, const long long Disc, const long long F);
 void ShowAllLargeSolutions();
 void ShowEq(long long A, long long B, long long C, long long D, long long E, long long F,
 	std::string x, std::string y);
