@@ -666,7 +666,7 @@ long long MulPrToLong(const mpz_int x) {
 		return rv;
 	}
 	else
-		throw std::range_error ("number cannot be converted to 64-bit");
+		throw std::range_error ("big number cannot be converted to 64-bit number");
 	return 0;
 }
 
@@ -710,11 +710,9 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, long long 
 		putchar('\n');
 	}
 
-	gcd(Bi_NUM, Bi_DEN, &BiG);           // BiG = gcd(NUM,DEN) = gcd (B,2*A)
-	BiZ = BiG * BiG;				   // BiZ = gcd(NUM,DEN)^2
-	//BiG = BiDisc; 				   // BiG = BiDisc = B^2-4AC
-	//BiG = BiB*BiB - 4 * BiA*BiC;     // calculate discriminant.
-	gcd(BiZ, BiDisc, &BiG);	           // BiG = gcd(NUM^2, DEN^2, BiDisc)
+	gcd(Bi_NUM, Bi_DEN, &BiG);     // BiG = gcd(NUM,DEN) = gcd (B,2*A)
+	BiZ = BiG * BiG;			   // BiZ = gcd(NUM,DEN)^2
+	gcd(BiZ, BiDisc, &BiG);	       // BiG = gcd(NUM^2, DEN^2, BiDisc)
 	A = MulPrToLong(BiG);        // convert gcd. assume that gcd fit into 64 bits!! 
 	B = 1;
 	T = 3;
@@ -814,17 +812,12 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, long long 
 				cont++;
 			}
 			else {
-				BiZ = *pDisc;      
-				BiG = BiM * BiM;   
-				BiG = BiZ - BiG;   // G = BiDisc-M^2
+				BiG = BiDisc - BiM * BiM;        // G = Disc-M^2
 				DivLargeNumber(BiG, BiP, &BiK);  // K=G/P
 				BiP = BiK;                  
-				BiZ = SqrtDisc + ((BiP < 0) ? 1 : 0); 
-				BiK = BiZ + BiM; 
-				Z = DivLargeNumberLL(BiK, BiP);
-				BiG = Z; 
-				BiZ = BiG * BiP; 
-				BiM = BiZ - BiM; 
+				BiZ = SqrtDisc + ((BiK < 0) ? 1 : 0); 
+				Z = DivLargeNumberLL(BiZ + BiM, BiK);
+				BiM = Z * BiK - BiM;
 			}
 			printf("%lld", Z);
 		}
@@ -1398,14 +1391,8 @@ void ShowRecursion(equation_class type) {
 		printf(" = 1. \n");
 	}
 
-	//Dp_A = A;        
-	//Dp_B = g_C; 
-	//Dp_C = g_A * g_C;    // Dp_C = A*C
-	//Dp_A = 1;          
-	//Dp_B = B; 
-	//GetRoot(Dp_A, Dp_B, Dp_C);          /* return values in BiDisc, SqrtDisc, Bi_NUM, Bi_DEN */
-	//ContFrac(Dp_A, 2, 1, 0, 0, 1, A);
-	GetRoot(1, g_B, g_A * g_C, &Disc);          /* return values in BiDisc, SqrtDisc, Bi_NUM, Bi_DEN, used by ContFrac */
+	
+	GetRoot(1, g_B, g_A * g_C, &Disc);          /* return values in Disc, SqrtDisc, Bi_NUM, Bi_DEN, used by ContFrac */
 	ContFrac(1, 2, 1, 0, 0, 1, g_A, Disc, g_F);
 
 	if (teach) {
@@ -2038,7 +2025,7 @@ equation_class	classify(const long long a, const long long b, const long long c,
 		//llSqrt(g_Disc)*llSqrt(g_Disc) != g_Disc &&
 		mpz_perfect_square_p(ZT(Bi_Disc)) == 0 &&
 		g_D == 0 && g_E == 0 && g_F != 0)
-		return hyperbolic_homog;  /* BiDisc is not a perfect square  and D, E are 0, and F is non-zero.
+		return hyperbolic_homog;  /* Bi_Disc is not a perfect square  and D, E are 0, and F is non-zero.
 								  this is a type of homogeneous equation*/
 
 	if (g_A == 0 && g_C == 0) {
@@ -2170,8 +2157,8 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 		if (abs(g_F) != 1) {
 			teach = false;   // save value of teach
 		}
-		GetRoot(g_A, g_B, g_C, &g_Disc);       //  sneaky!! values returned in 
-										 // BiDisc, SqrtDisc, Bi_NUM, Bi_DEN, used by SolContFrac
+		GetRoot(g_A, g_B, g_C, &g_Disc);       //  sneaky!! values returned in Disc, 
+										 // SqrtDisc, Bi_NUM, Bi_DEN, used by SolContFrac
 		teach = teachaux;    // restore saved value of teach
 
 		G = H = g_F;
@@ -2352,7 +2339,7 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 		Dp_A = 1; 
 		Dp_B = g_B; */
 		GetRoot(1, g_B, g_A * g_C, &g_Disc);           //  sneaky!! values returned in 
-											 // BiDisc, SqrtDisc, Bi_NUM, Bi_DEN, used by ContFrac
+											 // Disc, SqrtDisc, Bi_NUM, Bi_DEN, used by ContFrac
 		//Dp_A = g_A; 
 
 		ContFrac(g_A, 5, 1, 0, g_Disc, 1, g_A, g_Disc, g_F); /* A2, B2 solutions */
@@ -2371,7 +2358,7 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 		//Dp_A = NegDisc / g / h;     
 		//Dp_B = 0;                
 		//Dp_C = g / h; 
-		GetRoot(NegDisc / g / h, 0, g / h, &g_Disc);  // values returned in BiDisc, SqrtDisc, Bi_NUM, Bi_DEN, used by SolContFrac
+		GetRoot(NegDisc / g / h, 0, g / h, &g_Disc);  // values returned in Disc, SqrtDisc, Bi_NUM, Bi_DEN, used by SolContFrac
 
 		G = H = -N0 / h;
 		K = 1;

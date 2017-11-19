@@ -180,7 +180,7 @@ bool ShowHomoSols(int type, mpz_int Bi_SHH, mpz_int Bi_SHK, long long s, long lo
 * type = 4: Find convergents for modified equation in complete solution    *
 * type = 5: Find convergents for x^2 + Bxy + ACy^2 = 1 (mod B^2-4AC)       *
 * returns true if there are solutions, otherwise false                     *
-* uses global variables Bi_NUM, Bi_DEN, Bi_H1, Bi_H2, Bi_K1, Bi_K2, NbrCo    *
+* uses global variables Bi_NUM, Bi_DEN, Bi_H1, Bi_H2, Bi_K1, Bi_K2, NbrCo  *
 *     NbrEqs, Eqnbr, NbrSols, g_A2, g_B2, g_CY0, g_CY1, SqrtDisc           *
 ****************************************************************************/
 bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, long long T,
