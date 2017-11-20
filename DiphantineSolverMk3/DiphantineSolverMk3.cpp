@@ -142,6 +142,15 @@ void ShowXY(long long X, long long Y) {
 		//w("\ny = " + numToStr(X) + "\n");
 	}
 }
+void ShowXY(mpz_int X, mpz_int Y) {
+	showAlso();
+	if (!ExchXY) {
+		std::cout<< "x = " << X << "  y = " << Y << "\n";
+	}
+	else {
+		std::cout << "x = " << Y << "  y = " << X << "\n";
+	}
+}
 
 /* calculate and print values of X and Y. */
 void ShowX1Y1(long long X1, long long Y1, long long A, long long B, long long D,
@@ -204,10 +213,49 @@ int Show(long long num, std::string str, int t) {
 	}
 	return t;
 }
+int Show(mpz_int num, std::string str, int t) {
+	if (t == 2) {
+		txtStr = "";    // 1st output of sequence; clear contents of txtStr
+	}
+	if (num != 0) {
+		std::string str1 = "";
+		if ((t & 1) != 0 && num>0) {
+			str1 += " +";
+		}
+		if (num<0) {
+			str1 += " -";
+		}
+		if (abs(num) != 1) {
+			str1 += numToStr(abs(num));
+		}
+
+		str1 += str;    // add suffix if any
+		if ((t & 2) != 0) {
+			txtStr += str1;
+		}
+		else {
+			std::cout << str1;
+		}
+		return (t | 1);  // set bit 0, return type for next time
+	}
+	return t;
+}
 
 /* Uses global variable txtStr. 
 if t =2 result is left in txtStr and not output. (this feature does not seem to be used anywhere)*/
 void Show1(long long num, int t) {
+	char u = Show(num, "", t);
+	if ((u & 1) == 0 || abs(num) == 1) {
+		if ((u & 2) != 0) {
+			txtStr += numToStr(abs(num));  // output left in txtStr, not printed
+		}
+		else {
+			//w("" + numToStr(abs(num)));
+			std::cout << abs(num);
+		}
+	}
+}
+void Show1(mpz_int num, int t) {
 	char u = Show(num, "", t);
 	if ((u & 1) == 0 || abs(num) == 1) {
 		if ((u & 2) != 0) {
@@ -228,8 +276,8 @@ void ShowLin(long long D, long long E, long long F, std::string x, std::string y
 }
 
 /* print "ax^2 + Bxy + Cy^2 +Dx + Ey + F" */
-void ShowEq(long long A, long long B, long long C, long long D, long long E, long long F,
-	std::string x, std::string y) {
+void ShowEq(const mpz_int A, const mpz_int B, const mpz_int C, const mpz_int D, 
+	const mpz_int E, const mpz_int F, std::string x, std::string y) {
 	int t = Show(A, x + sq, 0);
 	t = Show(B, x + y, t);
 	t = Show(C, y + sq, t);
@@ -341,7 +389,8 @@ long long tDivLargeNumber(const mpz_int n, long long d, mpz_int *q) {
 }
 
 /* return quotient (= n/d) as a normal integer. uses floor division.
-i.e. rounds q down towards -infinity, and r will have the same sign as d.*/
+i.e. rounds q down towards -infinity, and r will have the same sign as d.
+MulPrToLong will throw an exception if the quotient > 64 bits */
 long long DivLargeNumberLL(const mpz_int n, const mpz_int d) {
 	mpz_t q, r;
 	long long llquot;
@@ -353,11 +402,7 @@ long long DivLargeNumberLL(const mpz_int n, const mpz_int d) {
 
 	mpz_inits(q, r, NULL);
 	mpz_fdiv_qr(q, r, ZT(n), ZT(d));    // note use of floor division
-	assert(mpz_fits_slong_p(q) != 0);   // is quotient too big for normal integer?
-	llquot = mpz_get_si(q);             // quotient convert to normal integer
-	if (mpz_cmp_ui(r, 0) != 0) {
-		//gmp_printf("**temp DivLargeNumberLL: %Zd = %Zd/%Zd  rem=%Zd \n", q, ZT(n), ZT(d), r);
-	}
+	llquot = MulPrToLong(q);             // quotient convert to normal integer
 	mpz_clears(q, r, NULL);		           // avoid memory leakage
 	return llquot;
 }
@@ -666,7 +711,7 @@ long long MulPrToLong(const mpz_int x) {
 		return rv;
 	}
 	else
-		throw std::range_error ("big number cannot be converted to 64-bit number");
+		throw std::range_error ("big number cannot be converted to 64-bit integer");
 	return 0;
 }
 
@@ -983,6 +1028,12 @@ void InsertNewSolution(const mpz_int Bi_H1, mpz_int Bi_K1) {
 
 /* convert num to digits, in brackets if -ve */
 std::string par(long long num) {
+	if (num<0) {
+		return "(" + numToStr(num) + ")";
+	}
+	return "" + numToStr(num);
+}
+std::string par(mpz_int num) {
 	if (num<0) {
 		return "(" + numToStr(num) + ")";
 	}
@@ -1335,7 +1386,7 @@ bool Mod(long long mod) {
 
 /* called from SolveElliptical */
 void ShowElipSol(long long A, long long B, long long D, long long u, std::string x, std::string x1,
-	std::string y, long long w2) {
+	std::string y, mpz_int w2) {
 	if (teach) {
 		putchar('\n');
 		ShowLin(2 * A, B, D, x, y);
@@ -1868,20 +1919,24 @@ void SolveParabolic(std::string x, std::string y, std::string x1) {
 /* uses global variables g_A, g_B, g_C, g_D, g_E, g_F */
 void SolveElliptical(std::string x, std::string x1, std::string y) {
 	int b;
-	long long u, w1, w2, g;
+	long long u;
 
-	long long NegDisc = 4 * g_A*g_C - g_B*g_B;   // get -ve of discriminant
-	long long E1 = 4 * g_A*g_E - 2 * g_B*g_D;
-	long long F1 = 4 * g_A*g_F - g_D*g_D;
-	g = gcd(NegDisc, E1 / 2);
-	long long CY1 = NegDisc / g;
-	long long CY0 = E1 / 2 / g;
-	long long N0 = CY0*CY0*g - CY1*F1;
+	mpz_int w1, w2;
+	mpz_int NegDisc = -Bi_Disc;   // get -ve of discriminant
+	mpz_int E1 = 4 * g_A*g_E - 2 * g_B*g_D;
+	mpz_int F1 = 4 * g_A*g_F - g_D*g_D;
+	mpz_int g = gcd(NegDisc, E1/2);
+	mpz_int CY1 = NegDisc / g;
+	mpz_int CY0 = E1/2/ g;
+	mpz_int N0 = CY0*CY0*g - CY1*F1;
 
 	double sqrtgN0 = sqrt((double)g*(double)N0);
 
-	double R3 = (-E1 / 2 - sqrtgN0) / NegDisc;    // get minimum for x as a real number
-	double R4 = (-E1 / 2 + sqrtgN0) / NegDisc;    // get maximum for x as a real number
+	double R3 = (double(-E1/2) - sqrtgN0) / (double)NegDisc;    // get minimum for x as a real number
+	double R4 = (double(-E1/2) + sqrtgN0) / (double)NegDisc;    // get maximum for x as a real number
+	if (R4 > LLONG_MAX || R3 < LLONG_MIN) {
+		throw std::range_error("floating-point number outside range of 64-bit integer");
+	}
 	long long R2 = (long long)floor(R4);          // get maximum for x as an integer
 	long long R1 = (long long)ceil(R3);           // get minimum for x as a real number
 
@@ -1913,10 +1968,9 @@ void SolveElliptical(std::string x, std::string x1, std::string y) {
 		for (u = R1; u <= R2; u++) {
 			w1 = -NegDisc*u*u - E1*u - F1;
 			w2 = llSqrt(w1);
-			if (w2*w2 == w1) {
+			if (w2*w2 == w1) {   // w1 is a perfect square 
 				if (b != 0) {
 					/* not 1st solution */
-					//w(", " + u);
 					printf(", %lld", u);
 				}
 				else {
@@ -1971,6 +2025,7 @@ divide all coefficients by their gcd if gcd > 1, and calculate the discriminant 
 equation_class	classify(const long long a, const long long b, const long long c,
 	const long long d, const long long e, const long long f) {
 	long long gcdA_E;
+	bool DiscIsPerfSqare;
 
 	/* get gcd of A, B, C, D, E. gcd = zero only if they are all zero*/
 	gcdA_E = gcd(a, gcd(b, gcd(c, gcd(d, e))));
@@ -2019,14 +2074,13 @@ equation_class	classify(const long long a, const long long b, const long long c,
 
 	
 	Bi_Disc = g_B*g_B - 4 * g_A*g_C; // get discriminant
-	g_Disc = MulPrToLong(Bi_Disc);  // temporary??
+	g_Disc = MulPrToLong(Bi_Disc);  // temporary?? assume Disc will fit into 64-bit number
+	DiscIsPerfSqare = mpz_perfect_square_p(ZT(Bi_Disc));  // true if Disc is a perfect square
 
-	if (Bi_Disc > 0 &&
-		//llSqrt(g_Disc)*llSqrt(g_Disc) != g_Disc &&
-		mpz_perfect_square_p(ZT(Bi_Disc)) == 0 &&
+	if (Bi_Disc > 0 && !DiscIsPerfSqare &&
 		g_D == 0 && g_E == 0 && g_F != 0)
-		return hyperbolic_homog;  /* Bi_Disc is not a perfect square  and D, E are 0, and F is non-zero.
-								  this is a type of homogeneous equation*/
+		return hyperbolic_homog;  /* Bi_Disc is not a perfect square  and D, E are 0, 
+							and F is non-zero. This is a type of homogeneous equation*/
 
 	if (g_A == 0 && g_C == 0) {
 		if (g_B == 0) {
@@ -2034,7 +2088,7 @@ equation_class	classify(const long long a, const long long b, const long long c,
 			return linear;
 		}
 		else {
-			/* simple hyperbolic; A = C = 0; B ≠ 0 */
+			/* simple hyperbolic; A = C = 0; B ≠ 0. It follows that Disc > 0 */
 			return simple_hyperbolic;
 		}
 	}
@@ -2055,8 +2109,9 @@ equation_class	classify(const long long a, const long long b, const long long c,
 
 	if (Bi_Disc < 0)
 		return elliptical;
-
-	return hyperbolic_gen;  // hyperbolic, not in other hyperbolic classes above
+	if (!DiscIsPerfSqare)
+		return hyperbolic_gen;  // hyperbolic, not in other hyperbolic classes above
+	else return hyperbolic_disc_ps;  // hyperbolic, disc is a perfect square
 }
 
 /* Solve Diophantine equations of the form: Ax^2 + Bxy + Cy^2 + Dx + Ey + F = 0
@@ -2073,10 +2128,11 @@ Note: B^2 -4AC is known as the discriminant of the equation
 */
 void solveEquation(const long long ax2, const long long bxy, const long long cy2,
 	const long long dx, const long long ey, const long long f) {
-	//mpz_int Dp_A, Dp_B, Dp_C;
+
 	mpz_int Dp_A, Dp_C;
 	bool teachaux;
 	long long NegDisc, E1, F1, G, H, K, N0;
+	mpz_int	BiN0;  // used for initial calculation of N0
 	long long T, g, h;
 	std::string t1, x, y, x1, y1;
 
@@ -2090,12 +2146,6 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 	NbrSols = 0;
 	NbrCo = -1;
 	also = false;
-	//A = ax2;           // x² coefficient
-	//B = bxy;           // xy coefficient 
-	//g_C = cy2;           // y² coefficient
-	//g_D = dx;            // x coefficient
-	//g_E = ey;            // y coefficient
-	//g_F = f;             // constant
 
 	std::cout << "\nSolve Diophantine equation:   ";
 	ShowEq(ax2, bxy, cy2, dx, ey, f, "x", "y");
@@ -2145,9 +2195,7 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 
 		/* B^2 - 4AC > 0, D = 0, E = 0 */
 	case hyperbolic_homog: {
-
 		/* solve using continued fractions */
-		//g_Disc = g_B*g_B - 4 * g_A*g_C; // get discriminant again
 
 		/*Dp_A = A;    
 		Dp_B = B; 
@@ -2212,21 +2260,24 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 		break;             // finished processing homogeneous equation
 	}
 
-						  
+	case hyperbolic_disc_ps:
 	case hyperbolic_gen: {  /* equation fits none of the other categories */
 		/* B^2 - 4AC > 0. There are a couple of special cases:
 		(1)   B^2 - 4AC is a perfect square
 		(2) N0 (calculated below) is zero
 		otherwise the equation is solved using continued fractions */
 
-		NegDisc = 4 * g_A*g_C - g_B*g_B;   // get -ve of discriminant
+		/* to avoid any risk of overflow all the calculations below SHOULD use 
+		Extended Precision! */
+		NegDisc = -g_Disc;        // here, discriminant is +ve, so NegDisc is always -ve
 		E1 = 4 * g_A*g_E - 2 * g_B*g_D;
 		F1 = 4 * g_A*g_F - g_D*g_D;
 		g = gcd(NegDisc, E1 / 2);
-		g_CY1 = NegDisc / g;
+		g_CY1 = NegDisc / g;              // always a -ve number
 		g_CY0 = E1 / 2 / g;
-		N0 = g_CY0*g_CY0*g - g_CY1*F1;
-		h = gcd(g_CY1, gcd(g, N0));   // h is gcd(Cy1, g, N0)
+		BiN0 = g_CY0*g_CY0*g - g_CY1*F1;  // use extended precision
+		N0 = MulPrToLong(BiN0);           // If overflow occurs, it's most likely here
+		h = gcd(g_CY1, gcd(g, N0));       // h is gcd(Cy1, NegDisc, E1/2, N0)
 		if (teach) {
 			printf("We want to convert this equation to one of the form:\n");
 			std::cout << x1 << sq << " + B " << y << sq << " + C " << y << " + D = 0 \n";
@@ -2320,14 +2371,13 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 		long long SqrtD = llSqrt(-NegDisc);
 		long long N1 = abs(N0 / h);
 
-		if (SqrtD*SqrtD == -NegDisc) {    // is discriminant a perfect square?
+		if (eqnType == hyperbolic_disc_ps) {    // is discriminant a perfect square?
 			SolveDiscIsSq(N0, x, y, SqrtD, g, h, N1, y1, x1);
 			break;
 		}
-
 		/* discriminant is not a perfect square */
+
 		if (N0 == 0) {
-			/* solution is x=0 (y any int) or y=0 (x any int)*/
 			ShowX1Y1(0, 0, g_A, g_B, g_D, NegDisc, E1 / 2);   // display solution
 			break;
 		}
@@ -2340,8 +2390,6 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 		Dp_B = g_B; */
 		GetRoot(1, g_B, g_A * g_C, &g_Disc);           //  sneaky!! values returned in 
 											 // Disc, SqrtDisc, Bi_NUM, Bi_DEN, used by ContFrac
-		//Dp_A = g_A; 
-
 		ContFrac(g_A, 5, 1, 0, g_Disc, 1, g_A, g_Disc, g_F); /* A2, B2 solutions */
 
 		g_Disc = MulPrToLong(Bi_Disc);         // calculate discriminant again
@@ -2407,8 +2455,6 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 		abort();				// must not happen
 	}
 
-	//mpz_clears(ZT(Bi_NUM), ZT(Bi_DEN), NULL);
-
 	assert(_CrtCheckMemory());        /* check for heap corruption &  */
 
 	_CrtMemCheckpoint(&memState2); /* check for memory leakage*/
@@ -2420,8 +2466,6 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 	}
 }
 
-
-//int Eval_Exception(int);
 
 /* get a number from the input stream */
 long long getnumber(std::string msg) {
@@ -2444,6 +2488,7 @@ long long getnumber(std::string msg) {
 
 /* Entry point for program. Get parameters and call solveEquation */
 int main(int argc, char* argv[]) {
+	/* putting try here means that any exception thrown anywhere will be caught */
 	try {
 		long long int a, b, c, d, e, f;
 		char yn = '\0';
@@ -2610,6 +2655,34 @@ int main(int argc, char* argv[]) {
 			std::cout << "\nHyperbolic homogeneous - no solutions\n";
 			a = 1; b = 0; c = -34; d = -0; e = 0; f = 1;
 			solveEquation(a, b, c, d, e, f);
+
+			std::cout << "\nHyperbolic, not solved using continued fractions\n";
+			a = -1000; b = -1000; c = -249; d = -1000; e = -570; f = 975;
+			solveEquation(a, b, c, d, e, f);
+
+
+			// code to find values for hyperbolic eqn where N0=0
+	/*		for (a = -1000; a <=1000; a++)
+				for (b = -1000; b <= 1000; b++)
+					for (c = -1000; c <= 1000; c++) {
+						g_Disc = b*b - 4 * a*c;
+						if (g_Disc <= 0)
+							continue;
+						for (d = -1000; d <= 1000; d++)
+							for (e = -1000; e <= 1000; e++) {
+								long long e1 = 4 * a*e - 2 * b*d;
+								long long g = gcd(g_Disc, e1 / 2);
+								g_CY0 = e1 / 2 / g;
+								for (f = -1000; f <= 1000; f++) {
+									long long f1 = 4 * a*f - d*d;
+									g_CY1 = -g_Disc / g;
+									long long N0 = g_CY0*g_CY0*g - g_CY1*f1;
+									if (N0 == 0)
+										std::cout << "a=" << a << " b=" << b << " c=" << c
+										<< "  d=" << d << " e=" << e << " f=" << f << "\n";
+								}
+							}
+					}*/
 		}
 
 		system("PAUSE");   // press any key to continue
@@ -2634,7 +2707,7 @@ int main(int argc, char* argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	catch (...) {   // catch block pobably only be executed under /EHa 
+	catch (...) {   // catch block probably only be executed under /EHa 
 					/* most likely to be a SEH-type exception */
 					//Eval_Exception(GetExceptionCode());
 		std::cerr << "Caught unknown exception in catch(...)." << std::endl;

@@ -41,8 +41,8 @@ void ShowLin(long long D, long long E, long long F, std::string x, std::string y
 bool ContFrac(const mpz_int Dp_A, int type, int SqrtSign, long long s, long long T,
 	long long MagnifY, long long A, const long long Disc, const long long F);
 void ShowAllLargeSolutions();
-void ShowEq(long long A, long long B, long long C, long long D, long long E, long long F,
-	std::string x, std::string y);
+void ShowEq(const mpz_int A, const mpz_int B, const mpz_int C, const mpz_int D, 
+	const mpz_int E, const mpz_int F, std::string x, std::string y);
 void SolContFrac(long long H, long long T, long long A, const long long B, long long C, 
 	std::string SCFstr);
 
@@ -58,9 +58,10 @@ enum equation_class {
 	linear,                // A = B = C = 0.
 	simple_hyperbolic,     // A = C = 0; B ≠ 0. (implies B ^ 2 - 4AC > 0)
 	elliptical,            // B^2 - 4AC < 0.
-	parabolic,             // B ^ 2 - 4AC = 0
-	hyperbolic_homog,      // B ^ 2 - 4AC > 0,  D = 0, E = 0
-	hyperbolic_gen,        // B ^ 2 - 4AC > 0, not in other hyperbolic classes above
+	parabolic,             // B^2 - 4AC = 0
+	hyperbolic_homog,      // B^2 - 4AC > 0,  D = 0, E = 0
+	hyperbolic_disc_ps,	   // B^2 - 4AC > 0 and (B^2 - 4AC) is a perfect square
+	hyperbolic_gen,        // B^2 - 4AC > 0, not in other hyperbolic classes above
 	no_soln                // fails tests that check a solution exists.
 						   // note, even if it passes the tests there may still be no solution
 };

@@ -480,7 +480,7 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 		//Mu = MulPrToLong(Dp_Mu);
 		//L = MulPrToLong(Dp_L);
 		//K = MulPrToLong(Dp_K);
-		M = MulPrToLong(Dp_M);
+		M = MulPrToLong(Dp_M);           // assume that M & P will fit into 64 bits
 		P = MulPrToLong(Dp_P);
 
 		do {
