@@ -11,7 +11,7 @@ extern mpz_int Bi_H1, Bi_H2, Bi_K1, Bi_K2;   // used by ContFrac
 extern long long g_A, g_B, g_D;
 extern mpz_int Bi_NUM, Bi_DEN;       // values set by GetRoot
 extern unsigned long long SqrtDisc;
-extern long long g_CY1, g_CY0;     // used by ShowHomoSols & ContFrac
+extern mpz_int g_CY1, g_CY0;     // used by ShowHomoSols & ContFrac
 extern long long g_A2, g_B2;       // note: g_A2, g_B2 set by ContFrac, used in SolveEquation
 extern int NbrSols, NbrCo;
 extern bool teach;
@@ -53,7 +53,7 @@ void NextConv(mpz_int *Bi_Prev, mpz_int *Bi_Act, const long long A1,
 /* uses global variables Bi_L1, Bi_L2, g_A, g_B, g_D, g_CY0, g_CY1
 values are returned in Bi_L1 and Bi_L2*/
 bool ShowHomoSols(int type, mpz_int Bi_SHH, mpz_int Bi_SHK, long long s, long long T,
-	const long long MagnifY, const std::string eqX, const std::string eqY, const long long F) {
+	const mpz_int MagnifY, const std::string eqX, const std::string eqY, const long long F) {
 
 	assert(_CrtCheckMemory());
 
@@ -184,14 +184,14 @@ bool ShowHomoSols(int type, mpz_int Bi_SHH, mpz_int Bi_SHK, long long s, long lo
 *     NbrEqs, Eqnbr, NbrSols, g_A2, g_B2, g_CY0, g_CY1, SqrtDisc           *
 ****************************************************************************/
 bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, long long T,
-	long long MagnifY, long long A, const long long Disc, const long long F) {
+	mpz_int MagnifY, mpz_int A, const long long Disc, const long long F) {
 
 	/*std::cout << "**temp ContFrac: type=" << type << "  SqrtSign=" << SqrtSign << "  s=" << s;
 	std::cout << "  T=" << T << "  MagnifY=" << MagnifY << "  A=" << A << "\n";
 	std::cout << "Bi_NUM=" << Bi_NUM << "  Bi_DEN=" << Bi_DEN;
 	std::cout << " Disc=" << Disc << "\n";*/
 	long long A1, B1;
-	long long P, Z, M, P1, M1, Tmp;       // K, L, Mu; deleted
+	long long P, Z, M, P1, M1, Tmp;      
 	mpz_int Dp_P, Dp_M, Dp_Z, Dp_G, Dp_Mu, Dp_K, Dp_L, Dp_M1, Dp_P1, Dp_zz;
 	long long H1ModCY1 = 1, H2ModCY1 = 0, K1ModCY1 = 0, K2ModCY1 = 1;
 	bool Sols = true, secondDo = true;
@@ -261,7 +261,7 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 
 		/* type = 4: Find convergents for modified equation in complete solution */
 		if (type == 4) {
-			H2ModCY1 = Z%g_CY1;
+			H2ModCY1 = MulPrToLong(Z%g_CY1);
 		}
 
 		/* type = 5: Find convergents for x^2 + Bxy + ACy^2 = 1 (mod B^2-4AC) */
@@ -434,10 +434,10 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 				}
 
 				if (Paso == 1 && type == 4) {
-					Tmp = (H1ModCY1 + Z*H2ModCY1) % g_CY1;
+					Tmp = MulPrToLong((H1ModCY1 + Z*H2ModCY1) % g_CY1);
 					H1ModCY1 = H2ModCY1;
 					H2ModCY1 = Tmp;
-					Tmp = (K1ModCY1 + Z*K2ModCY1) % g_CY1;
+					Tmp = MulPrToLong((K1ModCY1 + Z*K2ModCY1) % g_CY1);
 					K1ModCY1 = K2ModCY1;
 					K2ModCY1 = Tmp;
 				}
@@ -567,10 +567,10 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 				}
 
 				if (Paso == 1 && type == 4) {
-					Tmp = (H1ModCY1 + Z*H2ModCY1) % g_CY1;
+					Tmp = MulPrToLong((H1ModCY1 + Z*H2ModCY1) % g_CY1);
 					H1ModCY1 = H2ModCY1;
 					H2ModCY1 = Tmp;
-					Tmp = (K1ModCY1 + Z*K2ModCY1) % g_CY1;
+					Tmp = MulPrToLong((K1ModCY1 + Z*K2ModCY1) % g_CY1);
 					K1ModCY1 = K2ModCY1;
 					K2ModCY1 = Tmp;
 				}
@@ -650,9 +650,10 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, lon
 * SCFstr = Nothing or apostrophe (complete quad equation)                     *
 * called from solveEquation                                                   *
 * overwrites global variable Bi_L1, Bi_L2, NbrSols                            *
-* calls GetRoot which overwrites Bi_NUM, Bi_DEN                                 *
+* calls GetRoot which overwrites Bi_NUM, Bi_DEN                               *
+* uses global variables SqrtDisc
 ******************************************************************************/
-void SolContFrac(long long H, long long T, long long A, const long long B, long long C,
+void SolContFrac(long long H, long long T, mpz_int A, const long long B, mpz_int C,
 	std::string SCFstr) {
 	long long factor[64] = { 0 };
 	long long P[64] = { 0 };
@@ -665,15 +666,13 @@ void SolContFrac(long long H, long long T, long long A, const long long B, long 
 	mpz_int NUMcopy, DENcopy;
 
 	long long Disc;
-	long long ValA, ValB, ValC, ValF, ValAM, ValBM, ValCM;
+	long long  ValB, ValF, ValBM;
 	long long VarD, VarK, VarQ, VarR, VarV, VarW, VarX, VarY, VarY1;
-	mpz_int Dp_A, Dp_B, Dp_C, Dp_R, Dp_S, Dp_T;
-	mpz_int Bi_Xcopy, Bi_Ycopy;
+	mpz_int gcdAF, Dp_A, Dp_B, Dp_C, Dp_R, Dp_S, Dp_T, MagnifY;
+	mpz_int Bi_Xcopy, Bi_Ycopy, OrigA, ValA, ValAM, OrigC, ValC, ValCM;
 	int index, index2, cont;
 	int NbrFactors;
-	long long gcdAF, MagnifY;
 	int cuenta = 0;
-	long long OrigA, OrigC;
 	bool ShowHR = false;
 
 	//std::cout << "**temp SolContFrac:  H=" << H << "  T=" << T << "  A=" << A << "  B=" << B << "  C=" << C << "\n";;
@@ -704,7 +703,7 @@ void SolContFrac(long long H, long long T, long long A, const long long B, long 
 		VL = "y" + SCFstr;
 		FP = "f" + SCFstr;
 	}
-	gcdAF = gcd(A, F);
+	gcd(A, F, &gcdAF);
 	OrigA = A;
 	OrigC = C;
 	if (teach && gcdAF > 1) {
@@ -725,7 +724,7 @@ void SolContFrac(long long H, long long T, long long A, const long long B, long 
 				}
 			}
 			MagnifY = gcdAF / MagnifY;
-			F = H / T / T / MagnifY;
+			F = MulPrToLong(H / T / T / MagnifY);
 			ValF = abs(F);
 			A = OrigA / MagnifY;
 			C = OrigC*MagnifY;
@@ -775,7 +774,7 @@ void SolContFrac(long long H, long long T, long long A, const long long B, long 
 			/* complete list of prime factors of F now in array F */
 
 			mod[NbrFactors] = Tmp = 1;
-			Pp = (2 * ValA) % ValF;
+			Pp = MulPrToLong((2 * ValA) % ValF);
 			for (index = NbrFactors - 1; index >= 0; index--) {
 				P[index] = Pp;
 				Tmp *= factor[index];
@@ -786,8 +785,11 @@ void SolContFrac(long long H, long long T, long long A, const long long B, long 
 			ValAM = (ValA + Modulo) % Modulo;
 			ValBM = (ValB + Modulo) % Modulo;
 			ValCM = (ValC + Modulo) % Modulo;
+
 			if (ValAM == 0) {  /* Linear equation: sol=-C/B */
-				Sol1 = Sol2 = MultMod(Modulo - ValCM, ModInv(ValBM, Modulo), Modulo);
+				mpz_int t1 = Modulo - ValCM;
+				mpz_int t2 = ModInv(ValBM, Modulo);
+				Sol1 = Sol2 = MultMod(t1, t2, Modulo);
 			}
 			else {    /* Quadratic equation Ax^2+Bx+C=0 (mod F) */
 				if (Modulo>2) {
@@ -795,7 +797,8 @@ void SolContFrac(long long H, long long T, long long A, const long long B, long 
 					if (Sol1<0) { Sol1 += Modulo; }
 					/* Find square root of Sol1 mod Modulo */
 					if (Sol1 == 0) {                 /* if double root: sol = -t/2a */
-						Sol1 = Sol2 = MultMod(ModInv((2 * ValAM + Modulo) % Modulo, Modulo), ((-ValBM) + Modulo) % Modulo, Modulo);
+						long long t1 = MulPrToLong((2 * ValAM + Modulo) % Modulo);
+						Sol1 = Sol2 = MultMod(ModInv(t1, Modulo), ((-ValBM) + Modulo) % Modulo, Modulo);
 					}
 					else {
 						if (ModPow(Sol1, (Modulo - 1) / 2, Modulo) == 1) { /* if sols exist */
@@ -839,7 +842,8 @@ void SolContFrac(long long H, long long T, long long A, const long long B, long 
 									Sol1 = VarV;
 								}     /* end modulo 8 = 1 */
 							}
-							s = ModInv((2 * ValAM) % Modulo, Modulo);
+							long long t1 = MulPrToLong((2 * ValAM) % Modulo);
+							s = ModInv(t1, Modulo);
 							Sol2 = MultMod((Modulo + Sol1 - ValBM) % Modulo, s, Modulo);
 							Sol1 = MultMod((2 * Modulo - Sol1 - ValBM) % Modulo, s, Modulo);
 						}
@@ -894,7 +898,8 @@ void SolContFrac(long long H, long long T, long long A, const long long B, long 
 				index = NbrFactors - 1;
 				v = mod[index];
 				dif = 0;
-				q = (MultMod((MultMod(ValAM, t, ValF) + ValBM) % ValF, t, ValF) + ValCM) % ValF;  /* q%v = 0 */
+				q = MultMod((MultMod(ValAM, t, ValF) + ValBM) % ValF, t, ValF);
+				q = MulPrToLong((q + ValCM) % ValF);  /* q%v = 0 */
 				while (true) {
 					if (q%v == 0) {
 						if (index == 0) {          /* Solution found */
@@ -981,7 +986,8 @@ void SolContFrac(long long H, long long T, long long A, const long long B, long 
 			for (cont = (Sol1<0 ? 2 : 0); cont<2; cont++) {
 				index = NbrFactors - 1; v = mod[index];
 				dif = 0;
-				q = (MultMod((MultMod(ValAM, t, ValF) + ValBM) % ValF, t, ValF) + ValCM) % ValF;  /* q%v = 0 */
+				q = MultMod((MultMod(ValAM, t, ValF) + ValBM) % ValF, t, ValF);
+				q = MulPrToLong((q + ValCM) % ValF);  /* q%v = 0 */
 				while (true) {
 					//std::cout << "**temp SolContFrac(2)\n";
 					if (q%v == 0) {
@@ -1182,6 +1188,15 @@ long long MultMod(long long Num1, long long Num2, long long Mod) {
 	N1 = Num1; 
 
 	Prod = (N1 * Num2)%Mod ;  
+	x = MulPrToLong(Prod);   // magnitude of Prod  < Mod, therfore cannot overflow.
+	return x;
+}
+long long MultMod(mpz_int Num1, mpz_int Num2, long long Mod) {
+	mpz_int Prod;
+	long long x;
+
+	Mod = abs(Mod);   // ensure Mod is +ve 
+	Prod = (Num1 * Num2) % Mod;
 	x = MulPrToLong(Prod);   // magnitude of Prod  < Mod, therfore cannot overflow.
 	return x;
 }
