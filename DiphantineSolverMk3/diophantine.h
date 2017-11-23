@@ -40,20 +40,20 @@ std::string par(long long num);
 std::string par(mpz_int num);
 void ShowLin(long long D, long long E, long long F, std::string x, std::string y);
 void ShowLin(mpz_int D, mpz_int E, mpz_int F, std::string x, std::string y);
-bool ContFrac(const mpz_int Dp_A, int type, int SqrtSign, long long s, long long T,
-	mpz_int MagnifY, mpz_int A, const long long Disc, const long long F);
+bool ContFrac(const mpz_int Dp_A, int type, int SqrtSign, long long s, const mpz_int T,
+	mpz_int MagnifY, mpz_int A, const mpz_int Disc, const mpz_int F);
 void ShowAllLargeSolutions();
 void ShowEq(const mpz_int A, const mpz_int B, const mpz_int C, const mpz_int D, 
 	const mpz_int E, const mpz_int F, std::string x, std::string y);
-void SolContFrac(long long H, long long T, mpz_int A, const long long B, mpz_int C, 
+void SolContFrac(mpz_int H, long long T, mpz_int A, const long long B, mpz_int C, 
 	std::string SCFstr);
 
 long long MultMod(long long factor1, long long factor2, long long Mod);
-long long MultMod(mpz_int factor1, mpz_int factor2, long long Mod);
+long long MultMod(mpz_int factor1, mpz_int factor2, mpz_int Mod);
 long long ModInv(long long Val, long long Mod);
 long long ModPow(long long Base, long long Exp, long long Mod);
 void ShowBigEq(mpz_int Dp_A, mpz_int Dp_B, mpz_int Dp_C, std::string x, std::string y);
-void GetRoot(mpz_int Dp_A, mpz_int Dp_B, mpz_int Dp_C, long long *Disc);
+void GetRoot(mpz_int Dp_A, mpz_int Dp_B, mpz_int Dp_C, mpz_int *Disc);
 //int Compare(const mpz_int Bi_array, const mpz_int Bi_K1);
 
 /* enumerated variable used to classify type of equation */
