@@ -581,7 +581,7 @@ int ShowSols(equation_class type, const mpz_int m, const mpz_int n) {
 
 /* called from ShowRecursion
 type = hyperbolic_homog (homogenous) or hyperbolic_gen (general hyperbolic)
-Uses global variables Bi_H1, Bi_R, Bi_s, A, B, C, D, E */
+Uses global variables Bi_H1, Bi_H2, Bi_K1, Bi_K2, A, B, C, D, E */
 void ShowRecursionRoot(equation_class type) {
 	char t;   // 1 if K and L not integers, otherwise 0
 	mpz_int Bi_tmp1, Bi_tmp2;
@@ -590,12 +590,12 @@ void ShowRecursionRoot(equation_class type) {
 		Bi_H2 = -Bi_H2; //ChangeSign(&Bi_R);
 		Bi_K2 = -Bi_K2; //ChangeSign(&Bi_s);
 		if (t == 0) putchar('\n');    /* separate 2 sets of values for  P, Q, K, R, S, L
-									  If there is only 1 set we just get an unneeded blank line.*/
-									  //if (t == 1 && ShowSols(type) == 1) {
-									  /* changed this so that ShowSols is called again even if t is 1.
-									  ShowSols has an important side-effect; it prints values for P, Q, K, R, S, L
-									  if it can find them. Sometimes each call produces a different but valid
-									  set of values */
+				If there is only 1 set we just get an unneeded blank line.*/
+				//if (t == 1 && ShowSols(type) == 1) {
+				/* changed this so that ShowSols is called again even if t is 1.
+				ShowSols has an important side-effect; it prints values for P, Q, K, R, S, L
+				if it can find them. Sometimes each call produces a different but valid
+				set of values */
 		if (ShowSols(type, Bi_H2, Bi_K2) == 1 && t == 1) {
 			/* if we get to here we haven't yet got any values for P, Q, K, R, S, L.
 			The 3rd way below tends to produce very large numbers. */
@@ -1498,19 +1498,20 @@ void ShowRecursion(equation_class type) {
 	ShowRecursionRoot(type);
 
 	/* big problem here!! it prints rubbish values!! */
-	//if (B != 0) {
-	//	if (teach) {
-	//		std::cout << "\nAnother" << t1;
-	//		ShowEq(1, B, A*g_C, 0, 0, 0, "m", "n");
-	//		printf(" = 1 is: \n");
-	//	}
-	//	else {
-	//		printf("\nas well as\n");
-	//	}
-	//	MultAddLargeNumbers(1, Bi_R, B, Bi_s, Bi_R); /* r <- r + Bs */
-	//	ChangeSign(Bi_s);            /* s <- -s */
-	//	ShowRecursionRoot(type);
-	//}
+	if (g_B != 0) {
+		if (teach) {
+			std::cout << "\nAnother" << t1;
+			ShowEq(1, g_B, g_A*g_C, 0, 0, 0, "m", "n");
+			printf(" = 1 is: \n");
+		}
+		else {
+			printf("\nas well as\n");
+		}
+		//MultAddLargeNumbers(1, Bi_H2, g_B, Bi_K2, Bi_H2); /* r <- r + Bs */
+		Bi_H2 += g_B*Bi_K2;        /* r <- r + Bs */
+		Bi_K2 = -Bi_K2;            /* s <- -s */
+		ShowRecursionRoot(type);
+	}
 
 }
 
