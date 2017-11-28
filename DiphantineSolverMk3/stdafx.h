@@ -14,6 +14,7 @@
 #include <cassert>
 #include <exception>
 #include <csignal>
+#include <stdlib.h>
 #include "mpir.h"
 #include "boost/multiprecision/gmp.hpp" 
 #include "diophantine.h"

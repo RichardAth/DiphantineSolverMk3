@@ -267,7 +267,7 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, con
 		/* type = 5: Find convergents for x^2 + Bxy + ACy^2 = 1 (mod B^2-4AC) */
 		if (type == 5) {
 			A1 = g_B2 = 1;
-			g_A2 = MulPrToLong(Z%T);
+			g_A2 = Z%T;
 			B1 = 0;
 		}
 		else {
@@ -449,12 +449,12 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, con
 				Count = 1;
 			}
 			if (type == 5) {
-				Tmp = MulPrToLong((A1 + Z*g_A2) % T);
+				BiTmp = (A1 + Z*g_A2) % T;
 				A1 = g_A2; 
-				g_A2 = Tmp;
-				Tmp = MulPrToLong((B1 + Z*g_B2) % T);
+				g_A2 = BiTmp;
+				BiTmp = (B1 + Z*g_B2) % T;
 				B1 = g_B2; 
-				g_B2 = Tmp;
+				g_B2 = BiTmp;
 			}
 			Dp_Mu = -Dp_Mu; //ChangeSign
 			if (Paso == 2) {
@@ -792,7 +792,8 @@ void SolContFrac(mpz_int H, long long T, mpz_int A, const long long B, mpz_int C
 
 			if (ValAM == 0) {  /* Linear equation: sol=-C/B */
 				mpz_int t1 = Modulo - ValCM;
-				mpz_int t2 = ModInv(MulPrToLong(ValBM), Modulo);
+				mpz_int t2;
+				ModInv(&t2, ValBM, Modulo);  // t2 = modular inverse of BM
 				Sol1 = Sol2 = MultMod(t1, t2, Modulo);
 			}
 			else {    /* Quadratic equation Ax^2+Bx+C=0 (mod F) */
@@ -1168,9 +1169,13 @@ long long ModPow(long long Base, long long Exp, long long Mod) {
 	}
 }
 
-long long ModInv(long long Val, long long Mod) {
+/* find modular inverse. returns 0 if no modular inverse exists */
+long long ModInv(const long long Val, const long long Mod) {
 	long long U1, U3, V1, V3, Aux, Q;
-	U1 = 1; U3 = Val; V1 = 0; V3 = Mod;
+	U1 = 1; 
+	U3 = Val; 
+	V1 = 0; 
+	V3 = Mod;
 	while (V3 != 0) {
 		Q = U3 / V3;
 		Aux = U1 - V1*Q;
@@ -1182,7 +1187,18 @@ long long ModInv(long long Val, long long Mod) {
 	}
 	return (U1 + Mod) % Mod;
 }
+void ModInv(mpz_int* op, mpz_int Val, mpz_int Mod) {
+	mpz_int rv;
 
+	int ok = mpz_invert(ZT(rv), ZT(Val), ZT(Mod));
+	if (ok != 0) {
+		*op = rv;
+	}
+	else {
+		*op = 0;
+	}
+		return;		
+}
 /* Calculate Num1*Num2 mod Mod.
 /* removes overflow risk. sign of result is same as sign of Num1*Num2 */
 long long MultMod(long long Num1, long long Num2, long long Mod) {

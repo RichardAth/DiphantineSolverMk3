@@ -451,33 +451,28 @@ long long DivLargeNumberLL(const mpz_int n, const mpz_int d) {
 
 /* calculate K and L. values are returned in  K and L
 It returns true if K and L are valid.
-globals Bi_H1, Bi_K1 are also used
-Uses input global variables A, B, g_C, g_D, g_E
 called from ShowSols */
 bool CalculateKandL(const long long A, const long long B, const long long C, const long long D,
 	const long long E, const mpz_int Bi_R, const mpz_int Bi_s, mpz_int *L, mpz_int *K) {
+	mpz_int Dp_H1, Dp_H2;
 #ifdef temp
 	std::cout << "**temp CalculateKandL "
 	<< " Bi_R=" << Bi_R << " Bi_s=" << Bi_s;
 	std::cout << " A=" << A << " B=" << B << " C=" << C << " D=" << D
 	<< " E=" << E << "\n";
 #endif
-	//MultAddLargeNumbers(2, Bi_R, B, Bi_s, &Bi_L1);  /* 2r + Bs */
 	*K = 2 * Bi_R + B*Bi_s;   // 
-	Bi_H1 = *K - 2;   /* Kd = 2r + B*s - 2 */
-	Bi_K1 = Bi_R - 1;   /* r - 1 */
-	//MultAddLargeNumbers(-B, Bi_K1, -2 * A*g_C, Bi_s, &Bi_K1);  /* Ke */
+	Dp_H1 = *K - 2;           /* Kd = 2r + B*s - 2 */
+	Bi_K1 = Bi_R - 1;         /* r - 1 */
 	Bi_K1 = -B*Bi_K1 - 2 * A*C* Bi_s;
-	//MultAddLargeNumbers(g_C*g_D, Bi_H1, g_E, Bi_K1, &Bi_L1);  /* K(4AC - BB) */
-	*K = C*D*Bi_H1 + E* Bi_K1;
+	*K = C*D*Dp_H1 + E* Bi_K1;
 	if (tDivLargeNumber(*K, 4 * A*C - B*B, K) != 0) {  /* K */
 #ifdef temp
 		std::cout <<"**temp CalculateKandL: K not integer; return false\n";
 #endif
 		return false;               /* K not integer */
 	}
-	//MultAddLargeNumbers(g_D, Bi_K1, A*g_E, Bi_H1, &Bi_L2);
-	*L = D*Bi_K1 + A*E* Bi_H1;
+	*L = D*Bi_K1 + A*E* Dp_H1;
 #ifdef temp
 	std::cout << "**temp CalculateKandL " << " L=" << L
 	<< " Divisor = " <<   4 * A*C - B*B << "\n";
@@ -488,7 +483,6 @@ bool CalculateKandL(const long long A, const long long B, const long long C, con
 #endif
 		return false;               /* L not integer */
 	}
-	//MultAddLargeNumbers(1, Bi_L2, g_D, Bi_s, &Bi_L2);    /* L */
 	*L += D* Bi_s;
 #ifdef temp
 	std::cout << "**temp CalculateKandL: L=" << L << "\n";
@@ -526,14 +520,13 @@ void ShowLargeNumber(const mpz_int Bi_Nbr) {
 }
 
 
-/* called from ShowRecursionRoot. Uses global variables:
-Bi_K2, A, B, C, D, E
-Value returned in Bi_H1 is used by caller.
+/* called from ShowRecursionRoot. 
+Uses global variables: A, B, C, D, E
 type = hyperbolic_homog (homogenous) or hyperbolic_gen (general hyperbolic)
 return 1 if K or L not integers, otherwise zero
 If K and L are integers, print values for P, Q, K, R, S, L*/
 int ShowSols(equation_class type, const mpz_int m, const mpz_int n) {
-	mpz_int K, L;
+	mpz_int K, L, Mp_H1;
 #ifdef temp
 	std::cout << "**temp ShowSols  m=" << m << " n=" << n << " g_C=" << g_C << "\n";
 #endif
@@ -561,16 +554,16 @@ int ShowSols(equation_class type, const mpz_int m, const mpz_int n) {
 	printf("P = ");
 	ShowLargeNumber(m);
 	printf("\nQ = ");
-	Bi_H1 = -g_C* n;   
-	ShowLargeNumber(Bi_H1);
+	Mp_H1 = -g_C* n;   
+	ShowLargeNumber(Mp_H1);
 	if (type == hyperbolic_gen) {
 		printf("\nK = "); 	ShowLargeNumber(K);
 	}
-	Bi_H1 = g_A* n;  
-	printf("\nR = "); ShowLargeNumber(Bi_H1);
+	Mp_H1 = g_A* n;  
+	printf("\nR = "); ShowLargeNumber(Mp_H1);
 
-	Bi_H1 = m + g_B*n;
-	printf("\nS = "); ShowLargeNumber(Bi_H1);
+	Mp_H1 = m + g_B*n;
+	printf("\nS = "); ShowLargeNumber(Mp_H1);
 
 	if (type == hyperbolic_gen) {
 		printf("\nL = ");  ShowLargeNumber(L);
@@ -581,10 +574,10 @@ int ShowSols(equation_class type, const mpz_int m, const mpz_int n) {
 
 /* called from ShowRecursion
 type = hyperbolic_homog (homogenous) or hyperbolic_gen (general hyperbolic)
-Uses global variables Bi_H1, Bi_H2, Bi_K1, Bi_K2, A, B, C, D, E */
+Uses global variables Bi_H2, Bi_K2, A, B, C, D, E */
 void ShowRecursionRoot(equation_class type) {
 	char t;   // 1 if K and L not integers, otherwise 0
-	mpz_int Bi_tmp1, Bi_tmp2;
+	mpz_int Mp_tmp1, Mp_tmp2, Mp_H1, Mp_K1;
 	t = ShowSols(type, Bi_H2, Bi_K2);
 	if (type == hyperbolic_gen) {
 		Bi_H2 = -Bi_H2; //ChangeSign(&Bi_R);
@@ -609,28 +602,28 @@ void ShowRecursionRoot(equation_class type) {
 					"R = An(2m + Bn)\nS = m" << sq << " + 2Bmn + (B" + sq << " - AC)n" << sq <<
 					"\nL = n(Dm + (BD-AE)n) \nwe obtain:\n";
 			}
-			Bi_H1 = Bi_H2 * Bi_H2;    /* m^2 */
-			Bi_K1 = Bi_H2 * Bi_K2;    /* mn */
-			Bi_tmp1 = Bi_K2 * Bi_K2;    /* n^2 */
+			Mp_H1 = Bi_H2 * Bi_H2;    /* m^2 */
+			Mp_K1 = Bi_H2 * Bi_K2;    /* mn */
+			Mp_tmp1 = Bi_K2 * Bi_K2;    /* n^2 */
 
-			Bi_tmp2 = Bi_H1 - g_A*g_C* Bi_tmp1;
-			printf("P = ");  ShowLargeNumber(Bi_tmp2);
+			Mp_tmp2 = Mp_H1 - g_A*g_C* Mp_tmp1;
+			printf("P = ");  ShowLargeNumber(Mp_tmp2);
 
-			Bi_tmp2 = (-2 * g_C* Bi_K1) + (-g_B*g_C* Bi_tmp1);
-			printf("\nQ = ");   ShowLargeNumber(Bi_tmp2);
+			Mp_tmp2 = (-2 * g_C* Mp_K1) + (-g_B*g_C* Mp_tmp1);
+			printf("\nQ = ");   ShowLargeNumber(Mp_tmp2);
 
-			Bi_tmp2 = (-g_E* Bi_K1) + (-g_C*g_D* Bi_tmp1);
-			printf("\nK = "); 	ShowLargeNumber(Bi_tmp2);
+			Mp_tmp2 = (-g_E* Mp_K1) + (-g_C*g_D* Mp_tmp1);
+			printf("\nK = "); 	ShowLargeNumber(Mp_tmp2);
 
-			Bi_tmp2 = 2 * g_A* Bi_K1 + g_A*g_B* Bi_tmp1;
-			printf("\nR = ");  ShowLargeNumber(Bi_tmp2);
+			Mp_tmp2 = 2 * g_A* Mp_K1 + g_A*g_B* Mp_tmp1;
+			printf("\nR = ");  ShowLargeNumber(Mp_tmp2);
 
-			Bi_tmp2 = (g_B*g_B - g_A*g_C)* Bi_tmp1 + 2 * g_B* Bi_K1;
-			Bi_tmp2 += Bi_H1; 
-			printf("\nS = ");  ShowLargeNumber(Bi_tmp2);
+			Mp_tmp2 = (g_B*g_B - g_A*g_C)* Mp_tmp1 + 2 * g_B* Mp_K1;
+			Mp_tmp2 += Mp_H1; 
+			printf("\nS = ");  ShowLargeNumber(Mp_tmp2);
 
-			Bi_tmp2 = g_D* Bi_K1 + (g_B*g_D - g_A*g_E)* Bi_tmp1;
-			printf("\nL = ");   ShowLargeNumber(Bi_tmp2);   putchar('\n');
+			Mp_tmp2 = g_D* Mp_K1 + (g_B*g_D - g_A*g_E)* Mp_tmp1;
+			printf("\nL = ");   ShowLargeNumber(Mp_tmp2);   putchar('\n');
 		}
 	}
 }
@@ -758,16 +751,21 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, mpz_int *p
 	mpz_int BiP, BiM, BiZ, BiG, BiK, BiDisc;
 	bool NUMis0;
 
-	//A = MulPrToLong(BiA);            // assume that Dp_A will fit int 64 bits
-	//B = MulPrToLong(BiB);
-	//C = MulPrToLong(BiC);
-
 	BiDisc = BiB*BiB - 4 * BiA*BiC;
-	//*pDisc = B*B - 4 * A*C;           
-	*pDisc = BiDisc;         // Discriminant = B^2 -4AC (this is used later by caller)
+   	*pDisc = BiDisc;         // Discriminant = B^2 -4AC (this is used later by caller)
 	Bi_NUM = -BiB;                    
 	NUMis0 = (Bi_NUM == 0);					/* check whether NUM == 0 */
-	Bi_DEN = BiA*2;        
+	Bi_DEN = BiA*2;  
+	SqrtDisc = llSqrt(BiDisc);        // copy sqrt(Disc) to global var. Assume it won't overflow
+
+									  /* temporary */
+	/*std::cout << "**temp** getroot: BiA=" << BiA;
+	std::cout << " BiB=" << BiB;
+	std::cout << " BiC=" << BiC;
+	std::cout << " Bi_NUM=" << Bi_NUM;
+	std::cout << " Bi_DEN=" << Bi_DEN;
+	std::cout << " SqrtDisc =" << SqrtDisc << "  BiDisc =" << BiDisc << "\n";*/
+	/* end temporary */
 
 	if (teach) {
 		printf("We have to find the continued fraction expansion of the roots of \n");
@@ -788,75 +786,60 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, mpz_int *p
 			std::cout << " / " << Bi_DEN;          // print /den if positive
 		}
 		putchar('\n');
-	}
 
-	gcd(Bi_NUM, Bi_DEN, &BiG);     // BiG = gcd(NUM,DEN) = gcd (B,2*A)
-	BiZ = BiG * BiG;			   // BiZ = gcd(NUM,DEN)^2
-	gcd(BiZ, BiDisc, &BiG);	       // BiG = gcd(NUM^2, DEN^2, BiDisc)
-	A = MulPrToLong(BiG);        // convert gcd. assume that gcd fit into 64 bits!! 
-	B = 1;
-	T = 3;
+		gcd(Bi_NUM, Bi_DEN, &BiG);     // BiG = gcd(NUM,DEN) = gcd (B,2*A)
+		BiZ = BiG * BiG;			   // BiZ = gcd(NUM,DEN)^2
+		gcd(BiZ, BiDisc, &BiG);	       // BiG = gcd(NUM^2, DEN^2, BiDisc)
+		A = MulPrToLong(BiG);        // convert gcd. assume that gcd fit into 64 bits!! 
+		B = 1;
+		T = 3;
 
-	// remove any repeated factors from A (=BiG), put sqrt(product of repeated factors) in B
-	while (A % 4 == 0) {
-		A /= 4;   // remove factor 2^2
-		B *= 2;
-	}
-	while (A >= T*T) {
-		while (A % (T*T) == 0) {
-			A /= T*T;   // remove factor T^2
-			B *= T;
+		// remove any repeated factors from A (=BiG), put sqrt(product of repeated factors) in B
+		while (A % 4 == 0) {
+			A /= 4;   // remove factor 2^2
+			B *= 2;
 		}
-		T += 2;
-	}
-	/* B is the product of the factors removed from A (which is the GCD of NUM^2, DEN^2 , BiDisc)*/
-
-	DivLargeNumberRem(Bi_NUM, B, &Bi_NUM);   // NUM /= B (floor division)
-	DivLargeNumberRem(Bi_DEN, B, &Bi_DEN);   // DEN /= B (floor division)
-
-	if (teach && B != 1) {
-		bool DENis1 = (Bi_DEN == 1);  /* check whether DEN == 1*/
-		printf("Simplifying, ");
-		if (!DENis1 && !NUMis0) {
-			printf("(");
-		}
-		std::cout << "Sqrt(" << *pDisc / (B*B) << ")";
-		if (!NUMis0) {
-			gmp_printf("%+Zd", ZT(Bi_NUM));   // print NUM with sign + or - 
-		}
-		if (!DENis1 && !NUMis0) {
-			printf(")");
-		}
-		/* print "/DEN"  unless DEN = 1*/
-		if (!DENis1) {
-			printf(" / ");
-			if (Bi_DEN <0) {
-				std::cout << "(" << Bi_DEN << ")";  // print (-DEN)
+		while (A >= T*T) {
+			while (A % (T*T) == 0) {
+				A /= T*T;   // remove factor T^2
+				B *= T;
 			}
-			else {
-				std::cout << Bi_DEN;            // print DEN without brackets round it
-			}		
+			T += 2;
+		}
+		/* B is the product of the factors removed from A (which is the GCD of NUM^2, DEN^2 , BiDisc)*/
+		if (B != 1) {
+			DivLargeNumberRem(Bi_NUM, B, &Bi_NUM);   // NUM /= B (floor division)
+			DivLargeNumberRem(Bi_DEN, B, &Bi_DEN);   // DEN /= B (floor division)
+			bool DENis1 = (Bi_DEN == 1);  /* check whether DEN == 1*/
+			printf("Simplifying, ");
+			if (!DENis1 && !NUMis0) {
+				printf("(");
+			}
+			std::cout << "Sqrt(" << *pDisc / (B*B) << ")";
+			if (!NUMis0) {
+				gmp_printf("%+Zd", ZT(Bi_NUM));   // print NUM with sign + or - 
+			}
+			if (!DENis1 && !NUMis0) {
+				printf(")");
+			}
+			/* print "/DEN"  unless DEN = 1*/
+			if (!DENis1) {
+				printf(" / ");
+				if (Bi_DEN < 0) {
+					std::cout << "(" << Bi_DEN << ")";  // print (-DEN)
+				}
+				else {
+					std::cout << Bi_DEN;            // print DEN without brackets round it
+				}
+			}
+			putchar('\n');
+
+			Bi_NUM = -BiB;        // restore values of Bi_Num                 
+			Bi_DEN = BiA * 2;       // and Bi_DEN;
 		}
 
-		putchar('\n');
-	}
-
-	Bi_NUM = -BiB;                       
-	Bi_DEN = BiA*2;       
-	SqrtDisc = llSqrt(BiDisc);        // copy sqrt(Disc) to global var. Assume it won't overflow
-
-	/* temporary */
-	/*std::cout << "**temp** getroot: BiA=" << BiA;
-	std::cout << " BiB=" << BiB;
-	std::cout << " BiC=" << BiC;
-	std::cout << " Bi_NUM=" << Bi_NUM;
-	std::cout << " Bi_DEN=" << Bi_DEN;
-	std::cout << " SqrtDisc =" << SqrtDisc << "  BiDisc =" << BiDisc << "\n";*/
-	/* end temporary */
-
-	if (teach) {
 		printf("The continued fraction expansion is: \n");
-		BiP = Bi_DEN;  //mpz_set(BiP, Bi_DEN);   
+		BiP = Bi_DEN;     
 
 		/* if DEN >= 0 then K = SqrtDisc else K = SqrtDisc+1 */
 		BiK = SqrtDisc + ((Bi_DEN < 0) ? 1 : 0); 
@@ -907,7 +890,6 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, mpz_int *p
 		}
 		putchar('\n');
 	}
-	assert(_CrtCheckMemory());
 }
 
 /* return gcd (P,Q,R), unless gcd is not a factor of S.
@@ -1340,7 +1322,7 @@ int Linear(long long D, mpz_int E, mpz_int F) {
 			NoGcd(F);
 			return 1;               // No solutions
 		}
-		D = MulPrToLong(D / Q); 
+		D = MulPrToLong(D / Q);   // no overflow problem here; magnitude of qoitient < D
 		E = E / Q;
 		F = F / Q;   // divide by gcd
 	}
@@ -1367,12 +1349,16 @@ int Linear(long long D, mpz_int E, mpz_int F) {
 		long long q = DivLargeNumberLL(U3, V3);
 		mpz_int T1 = U1 - q*V1;
 		long long T2 = U2 - q*V2;
-		long long T3 = MulPrToLong(U3 - q*V3);
-		U1 = V1; U2 = V2; U3 = V3;
-		V1 = T1; V2 = T2; V3 = T3;
+		mpz_int T3 = U3 - q*V3;
+		U1 = V1;  
+		V1 = T1; 
+		U2 = V2;
+		V2 = T2; 
+		U3 = V3;
+		V3 = T3;
 		t++;
 	}
-	Xi = MulPrToLong(-U1*F / U3); 
+	Xi = -U1*F / U3; 
 	Xl = E; 
 	Yi = -U2*F / U3; 
 	Yl = -D;
@@ -1460,14 +1446,13 @@ void ShowElipSol(long long A, long long B, long long D, long long u, std::string
 
 /* called from solveEquation
 type = hyperbolic_homog (homogenous) or hyperbolic_gen (general hyperbolic)
-uses global variables g_A, g_B, g_C, Bi_R*/
+uses global variables g_A, g_B, g_C, Bi_H2, Bi_K2*/
 void ShowRecursion(equation_class type) {
 	const std::string t1 = " integer solution of the equation \nm" + sq + " + bmn + acn" + sq + " = ";
-	mpz_int Dp_A, Dp_B, Dp_C;
 	mpz_int Disc;
 
-	/*std::cout << "**temp ShowRecursion A=" << A << " B=" << B << " C=" << g_C << " Bi_R=";
-	ShowLargeNumber(Bi_R);
+	/*std::cout << "**temp ShowRecursion A=" << A << " B=" << B << " C=" << g_C << " Bi_H2=";
+	ShowLargeNumber(Bi_H2);
 	std::cout << " type=" << type << "\n";*/
 
 	if (type == hyperbolic_gen) {
@@ -1486,7 +1471,8 @@ void ShowRecursion(equation_class type) {
 	}
 
 	
-	GetRoot(1, g_B, g_A * g_C, &Disc);          /* return values in Disc, SqrtDisc, Bi_NUM, Bi_DEN, used by ContFrac */
+	GetRoot(1, g_B, g_A * g_C, &Disc);      /* return values in Disc, SqrtDisc, Bi_NUM, Bi_DEN, 
+											used by ContFrac */
 	ContFrac(1, 2, 1, 0, 0, 1, g_A, Disc, g_F);
 
 	if (teach) {
@@ -1495,9 +1481,8 @@ void ShowRecursion(equation_class type) {
 		printf(" = 1 is: \n");
 	}
 
-	ShowRecursionRoot(type);
+	ShowRecursionRoot(type);  // note: sign of Bi_H2, Bi_K2 may be reversed on return
 
-	/* big problem here!! it prints rubbish values!! */
 	if (g_B != 0) {
 		if (teach) {
 			std::cout << "\nAnother" << t1;
@@ -1510,7 +1495,7 @@ void ShowRecursion(equation_class type) {
 		//MultAddLargeNumbers(1, Bi_H2, g_B, Bi_K2, Bi_H2); /* r <- r + Bs */
 		Bi_H2 += g_B*Bi_K2;        /* r <- r + Bs */
 		Bi_K2 = -Bi_K2;            /* s <- -s */
-		ShowRecursionRoot(type);
+		ShowRecursionRoot(type);   
 	}
 
 }

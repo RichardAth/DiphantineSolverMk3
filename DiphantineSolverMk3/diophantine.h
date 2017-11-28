@@ -1,7 +1,6 @@
 ﻿#pragma once
 
 #define _CRTDBG_MAP_ALLOC  
-#include <stdlib.h>  
 #include <crtdbg.h>  
 
 /* constants */
@@ -20,8 +19,8 @@ using namespace boost::multiprecision;
 
 void ShowLargeXY(std::string x, std::string y, mpz_int Bi_H1, mpz_int Bi_K1,
 	bool sol, const std::string eqX, const std::string eqY);
-bool ShowHomoSols(int type, mpz_int Bi_H1, mpz_int Bi_K1, long long s, long long T,
-	mpz_int MagnifY, std::string eqX, std::string eqY, const long long g_F);
+bool ShowHomoSols(int type, mpz_int H1, mpz_int K1, long long s, mpz_int T,
+	const mpz_int MagnifY, const std::string eqX, const std::string eqY, const mpz_int F);
 void ShowLargeNumber(const mpz_int Bi_Nbr);
 long long DivLargeNumberRem(const mpz_int Bi_Nbr, long long Coef, mpz_int *Bi_Dest);
 long long tDivLargeNumber(const mpz_int n, mpz_int d, mpz_int *q);
@@ -50,7 +49,8 @@ void SolContFrac(mpz_int H, long long T, mpz_int A, const long long B, mpz_int C
 
 long long MultMod(long long factor1, long long factor2, long long Mod);
 long long MultMod(mpz_int factor1, mpz_int factor2, mpz_int Mod);
-long long ModInv(long long Val, long long Mod);
+long long ModInv(const long long Val, const long long Mod);
+void ModInv(mpz_int* op, mpz_int Val, mpz_int Mod);
 long long ModPow(long long Base, long long Exp, long long Mod);
 void ShowBigEq(mpz_int Dp_A, mpz_int Dp_B, mpz_int Dp_C, std::string x, std::string y);
 void GetRoot(mpz_int Dp_A, mpz_int Dp_B, mpz_int Dp_C, mpz_int *Disc);
