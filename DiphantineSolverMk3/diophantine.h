@@ -17,15 +17,15 @@ using namespace boost::multiprecision;
 
 /* functions that use bigints (mpz_int)*/
 
-void ShowLargeXY(std::string x, std::string y, mpz_int Bi_H1, mpz_int Bi_K1,
-	bool sol, const std::string eqX, const std::string eqY);
-bool ShowHomoSols(int type, mpz_int H1, mpz_int K1, long long s, mpz_int T,
-	const mpz_int MagnifY, const std::string eqX, const std::string eqY, const mpz_int F);
-void ShowLargeNumber(const mpz_int Bi_Nbr);
-long long DivLargeNumberRem(const mpz_int Bi_Nbr, long long Coef, mpz_int *Bi_Dest);
-long long tDivLargeNumber(const mpz_int n, mpz_int d, mpz_int *q);
-long long MulPrToLong(const mpz_int x);
-long long DivLargeNumberLL(const mpz_int Dp_Dividend, const mpz_int Dp_Divisor);
+void ShowLargeXY(const std::string &x, const std::string &y, const mpz_int &Bi_H1, const mpz_int &Bi_K1,
+	bool sol, const std::string &eqX, const std::string &eqY);
+bool ShowHomoSols(const int type, const mpz_int &H1, const mpz_int &K1, long long s, const mpz_int &T,
+	const mpz_int &MagnifY, const std::string &eqX, const std::string &eqY, const mpz_int &F);
+void ShowLargeNumber(const mpz_int &Bi_Nbr);
+long long DivLargeNumberRem(const mpz_int &Bi_Nbr, long long Coef, mpz_int *Bi_Dest);
+long long tDivLargeNumber(const mpz_int &n, mpz_int d, mpz_int *q);
+long long MulPrToLong(const mpz_int &x);
+long long DivLargeNumberLL(const mpz_int &Dp_Dividend, const mpz_int &Dp_Divisor);
 void DivLargeNumber(const mpz_int Dp_Dividend, const mpz_int Dp_Divisor, mpz_int *Dp_Quotient);
 void gcd(const mpz_int Dp_Nbr1, const mpz_int Dp_Nbr2, mpz_int *Dp_Gcd);
 long long gcd(long long M, long long N);    // same name, does same job, but for normal integers
@@ -44,7 +44,7 @@ bool ContFrac(const mpz_int Dp_A, int type, int SqrtSign, long long s, const mpz
 void ShowAllLargeSolutions();
 void ShowEq(const mpz_int A, const mpz_int B, const mpz_int C, const mpz_int D, 
 	const mpz_int E, const mpz_int F, std::string x, std::string y);
-void SolContFrac(mpz_int H, long long T, mpz_int A, const long long B, mpz_int C, 
+void SolContFrac(const mpz_int &H, long long T, mpz_int A, const long long B, mpz_int C, 
 	std::string SCFstr);
 
 long long MultMod(long long factor1, long long factor2, long long Mod);

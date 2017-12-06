@@ -38,14 +38,17 @@ bool allSolsFound;
 const std::string divgcd = "Dividing the equation by the GCD we obtain: \n";
 
 long long g_A, g_B, g_C, g_D, g_E, g_F;  // coefficients for x², xy, y² x, y, and constant
-mpz_int g_CY1, g_CY0;
-mpz_int g_A2, g_B2;   // note: g_A2, g_B2 set by ContFrac
-//long long g_Disc;    // should get rid of this, use 
-mpz_int Bi_Disc;     // extended-precision variable instead
+
+// set by SolveEquation
+mpz_int g_CY1, g_CY0;  // used by SolveDiscIsSq, ShowHomoSols & ContFrac
+
+mpz_int g_A2, g_B2;   // note: g_A2, g_B2 set by ContFrac, used by SolveEquation
+
+mpz_int Bi_Disc;     
 unsigned long long SqrtDisc;  // square root of Disc, set by GetRoot
 
 /* large numbers; shown by Bi_ prefix */
-mpz_int Bi_H1, Bi_H2, Bi_K1, Bi_K2;
+mpz_int Bi_H1, Bi_H2, Bi_K2;
 mpz_int Bi_NUM, Bi_DEN;              // set by GetRoot
 
 int NbrSols = 0, NbrCo;
@@ -372,7 +375,7 @@ the 3 different types of division only give different results when
 the remainder is non-zero and n or d (or both) are negative.
 NB. The choice of floor or truncation type division is sometimes
 critical, and the correct choice is not obvious. */
-long long DivLargeNumberRem(const mpz_int n, long long d, mpz_int *q) {
+long long DivLargeNumberRem(const mpz_int &n, long long d, mpz_int *q) {
 	long long remainder;
 	mpz_t mpr, mpd, nsave, qq;
 
@@ -401,7 +404,7 @@ the 3 different types of division only give different results when
 the remainder is non-zero and n or d (or both) are negative
 NB. The choice of floor or truncation type division is sometimes
 critical, and the correct choice is not obvious. */
-long long tDivLargeNumber(const mpz_int n, mpz_int d, mpz_int *q) {
+long long tDivLargeNumber(const mpz_int &n, mpz_int d, mpz_int *q) {
 	long long remainder;
 	mpz_t mpr, nsave, qq;
 
@@ -426,7 +429,7 @@ long long tDivLargeNumber(const mpz_int n, mpz_int d, mpz_int *q) {
 /* return quotient (= n/d) as a normal integer. uses floor division.
 i.e. rounds q down towards -infinity, and r will have the same sign as d.
 (MulPrToLong will throw an exception if the quotient > 64 bits) */
-long long DivLargeNumberLL(const mpz_int n, const mpz_int d) {
+long long DivLargeNumberLL(const mpz_int &n, const mpz_int &d) {
 	mpz_t q, r;
 	long long llquot;
 
@@ -454,7 +457,7 @@ It returns true if K and L are valid.
 called from ShowSols */
 bool CalculateKandL(const long long A, const long long B, const long long C, const long long D,
 	const long long E, const mpz_int Bi_R, const mpz_int Bi_s, mpz_int *L, mpz_int *K) {
-	mpz_int Dp_H1, Dp_H2;
+	mpz_int Dp_H1, Dp_H2, Dp_K1;
 #ifdef temp
 	std::cout << "**temp CalculateKandL "
 	<< " Bi_R=" << Bi_R << " Bi_s=" << Bi_s;
@@ -463,16 +466,16 @@ bool CalculateKandL(const long long A, const long long B, const long long C, con
 #endif
 	*K = 2 * Bi_R + B*Bi_s;   // 
 	Dp_H1 = *K - 2;           /* Kd = 2r + B*s - 2 */
-	Bi_K1 = Bi_R - 1;         /* r - 1 */
-	Bi_K1 = -B*Bi_K1 - 2 * A*C* Bi_s;
-	*K = C*D*Dp_H1 + E* Bi_K1;
+	Dp_K1 = Bi_R - 1;         /* r - 1 */
+	Dp_K1 = -B*Dp_K1 - 2 * A*C* Bi_s;
+	*K = C*D*Dp_H1 + E* Dp_K1;
 	if (tDivLargeNumber(*K, 4 * A*C - B*B, K) != 0) {  /* K */
 #ifdef temp
 		std::cout <<"**temp CalculateKandL: K not integer; return false\n";
 #endif
 		return false;               /* K not integer */
 	}
-	*L = D*Bi_K1 + A*E* Dp_H1;
+	*L = D*Dp_K1 + A*E* Dp_H1;
 #ifdef temp
 	std::cout << "**temp CalculateKandL " << " L=" << L
 	<< " Divisor = " <<   4 * A*C - B*B << "\n";
@@ -491,7 +494,7 @@ bool CalculateKandL(const long long A, const long long B, const long long C, con
 }
 
 /* print large number, with - sign if negative. */
-void ShowLargeNumber(const mpz_int Bi_Nbr) {
+void ShowLargeNumber(const mpz_int &Bi_Nbr) {
 	std::string nbrOutput = "";
 	char* buffer = NULL;
 	size_t msglen, index = 0;
@@ -631,10 +634,10 @@ void ShowRecursionRoot(equation_class type) {
 /* called from classify. Returns true if equation has no solutions*/
 bool CheckMod(long long R, long long S, long long X2, long long X1, long long X0) {
 	long long Y2 = gcd(R, S);
-	long Y1 = 2;
+	long long fact = 2;
 	int indH = 1;
 	long long D1 = abs(Y2);
-	long long factors[64];
+	long long factors[64];    // holds factors of Y2
 	if (teach) {
 		if (Y2 != 1) {
 			printf("We try to check the equation modulo the prime divisors of ");
@@ -648,19 +651,19 @@ bool CheckMod(long long R, long long S, long long X2, long long X1, long long X0
 			}
 		}
 	}
-	/* store factors */
-	while (D1 >= Y1*Y1) {
+	/* store factors of D1 in array */
+	while (D1 >= fact*fact) {
 		int T = 0;
-		while (D1%Y1 == 0) {
+		while (D1%fact == 0) {
 			T++;
 			if (T == 1) {
-				factors[indH++] = Y1;  // only save factor once
+				factors[indH++] = fact;  // only save factor once
 			}
-			D1 /= Y1;      // remove factor
+			D1 /= fact;      // remove factor
 		}
-		Y1++;
-		if (Y1>3) {
-			Y1++;  // skip even numbers other than 2
+		fact++;
+		if (fact>3) {
+			fact++;  // skip even numbers other than 2
 		}
 	}
 	if (D1>1) {
@@ -732,7 +735,7 @@ void ShowBigEq(mpz_int Dp_A, mpz_int Dp_B, mpz_int Dp_C, std::string x, std::str
 }
 
 /* convert biginteger to normal. Checks for overflow */
-long long MulPrToLong(const mpz_int x) {
+long long MulPrToLong(const mpz_int &x) {
 	long long rv;
 	if (x >= LLONG_MIN && x <= LLONG_MAX) { // is x value OK for normal integer?
 		rv = mpz_get_si(ZT(x)); // convert to normal integer
@@ -986,11 +989,11 @@ int Comparev(const void * Bi_array, const mpz_t Bi_K1) {
 by the std::vector STL so the mpz_t structures and the values they contain are
 are copied from the stack to  blocks in the heap and the vectors contain pointers
 to the copies on the heap. */
-void InsertNewSolution(const mpz_int Bi_H1, mpz_int Bi_K1) {
+void InsertNewSolution(const mpz_int Bi_x, mpz_int Bi_y) {
 	ptrdiff_t indexVector = 0, compare;
 	size_t sizeVector = 0, increment;
 	/* temporary  */
-	//gmp_printf("\n**temp InsertNewSolution X = %Zd  Y = %Zd\n", ZT(Bi_H1), ZT(Bi_K1));  
+	//gmp_printf("\n**temp InsertNewSolution X = %Zd  Y = %Zd\n", ZT(Bi_x), ZT(Bi_y));  
 	/* end temporary */
 
 	sizeVector = sortedSolsYv.size();
@@ -1001,16 +1004,16 @@ void InsertNewSolution(const mpz_int Bi_H1, mpz_int Bi_K1) {
 		}
 		while (increment > 0) {  /* Perform binary search */
 			if (indexVector + increment <= sizeVector) {
-				compare = Comparev(sortedSolsXv.at(indexVector + increment - 1), ZT(Bi_H1));
+				compare = Comparev(sortedSolsXv.at(indexVector + increment - 1), ZT(Bi_x));
 				if (compare == 0) {
-					compare = Comparev(sortedSolsYv.at(indexVector + increment - 1), ZT(Bi_K1));
+					compare = Comparev(sortedSolsYv.at(indexVector + increment - 1), ZT(Bi_y));
 				}
 				if (compare == 0) {
 					/* temporary  */
 					/*printf("** duplicate solution discarded: X = ");
-					ShowLargeNumber(Bi_H1);
+					ShowLargeNumber(Bi_x);
 					printf("  Y = ");
-					ShowLargeNumber(Bi_K1);
+					ShowLargeNumber(Bi_y);
 					putchar('\n');*/
 					/* end temporary */
 					return;  // if solution already in list don't add it again
@@ -1024,8 +1027,8 @@ void InsertNewSolution(const mpz_int Bi_H1, mpz_int Bi_K1) {
 	}
 
 	mpz_t H1, K1;             // copy the values. The structure itself
-	mpz_init_set(H1, ZT(Bi_H1));  // is copied to a stack variable. the value is copied to
-	mpz_init_set(K1, ZT(Bi_K1));  // a new block from the heap
+	mpz_init_set(H1, ZT(Bi_x));  // is copied to a stack variable. the value is copied to
+	mpz_init_set(K1, ZT(Bi_y));  // a new block from the heap
 
 
 	void *Hcopy, *Kcopy;
@@ -1071,14 +1074,14 @@ std::string par1(mpz_int num) {
 /* this function either calls InsertNewSolution to save the solution
 or outputs the the solution: "x=<val>  y=<val>"
 In some cases the -ve value of x and/or y is also stored/printed */
-void ShowLargeXY(std::string x, std::string y, mpz_int Bi_X, mpz_int Bi_Y,
-	bool sol, const std::string eqX, const std::string eqY) {
+void ShowLargeXY(const std::string &x, const std::string &y, const mpz_int &Bi_X, const mpz_int &Bi_Y,
+	bool sol, const std::string &eqX, const std::string &eqY) {
 	/* if sol == true use both +ve and -ve of solution */
 
 	if ((x == "X") && (y == "Y")) {
 
-		/*std::cout << "**temp ShowLargeXY H1="; 	ShowLargeNumber(Bi_H1);
-		std::cout << " K1=";  ShowLargeNumber(Bi_K1);
+		/*std::cout << "**temp ShowLargeXY X="; 	ShowLargeNumber(Bi_X);
+		std::cout << " Y=";  ShowLargeNumber(Bi_Y);
 		std::cout << "  sol=" << sol << "\n";*/
 
 		if (!teach && !allSolsFound) {
@@ -1311,8 +1314,8 @@ int Linear(long long D, mpz_int E, mpz_int F) {
 		}
 	}
 
-	mpz_int Q;
-	gcd(D, E, &Q);
+	mpz_int Q;  // gcd of D & E
+	gcd(D, E, &Q);   // since D is < 64 bits, Q also < 64 bits
 	if (Q != 1 && Q != -1) {
 		if (teach) {
 			std::cout << "To solve it, we first find the gcd of the linear coefficients, that is: gcd(" <<
@@ -1385,7 +1388,7 @@ int Linear(long long D, mpz_int E, mpz_int F) {
 		Yl = -Yl;
 	}
 	PrintLinear(Xi, Xl, Yi, Yl, "t");
-	return 0;
+	return 0;   // 0 indicates a solution was found
 }
 
 /* uses global variables A, B, C, D, E, F.
@@ -1414,8 +1417,8 @@ bool Mod(long long mod) {
 }
 
 /* called from SolveElliptical */
-void ShowElipSol(long long A, long long B, long long D, long long u, std::string x, std::string x1,
-	std::string y, mpz_int w2) {
+void ShowElipSol(long long A, long long B, long long D, long long u, std::string x, 
+	std::string x1, std::string y, mpz_int w2) {
 	if (teach) {
 		putchar('\n');
 		ShowLin(2 * A, B, D, x, y);
@@ -1501,7 +1504,7 @@ void ShowRecursion(equation_class type) {
 }
 
 /* called from SolveSimpleHyperbolic */
-void SolByFact(long long R, long long T, long long B, long long D, long long E) {
+void SolByFact(mpz_int R, long long T, long long B, long long D, long long E) {
 	if (teach) {
 		std::cout << T << " is a factor of " << R << ", so we can set:\n";
 		Show1(E, Show(B, "x", 0));
@@ -1517,10 +1520,11 @@ void SolByFact(long long R, long long T, long long B, long long D, long long E) 
 		if (D != 0) {
 			printf("\nThis means that ");
 			Show(B, "y = ", 0);
-			printf("%lld", R / T - D);
+			std::cout << R / T - D;
 		}
 		putchar('\n');
 	}
+
 	if ((T - E) % B == 0 && (R / T - D) % B == 0) {
 		if (teach) {
 			std::cout << "-----------------------------------\n";
@@ -1580,7 +1584,6 @@ void SolveDiscIsSq(mpz_int BiN0, std::string x, std::string y, long long SqrtD, 
 			Xc = -Xc;          // reverse sign of Xc
 		}
 
-		//SqrtD = abs(SqrtD);  // pointless? SqrtD is always positive and also the changed value is not returned to the caller
 		if (teach) {
 			//w("</UL>");
 		}
@@ -1640,7 +1643,8 @@ void SolveDiscIsSq(mpz_int BiN0, std::string x, std::string y, long long SqrtD, 
 uses global variables g_B, g_D, g_E and g_F*/
 void SolveSimpleHyperbolic(void) {
 	/* simple hyperbolic; A = C = 0; B ≠ 0 */
-	long long R, S, T;
+	long long S, T;
+	mpz_int R;
 
 	R = g_D*g_E - g_B*g_F;
 	if (teach) {
@@ -1649,17 +1653,20 @@ void SolveSimpleHyperbolic(void) {
 		printf(" = %lld \n", (-g_F*g_B));
 		printf("Adding %lld to both sides of the equal sign: \n", (g_D*g_E));
 		ShowEq(0, g_B*g_B, 0, g_D*g_B, g_E*g_B, g_D*g_E, "x", "y");
-		printf(" = %lld \n", R);
+		//printf(" = %lld \n", R);
+		std::cout << " = " << R << "\n";
 		printf("Now the left side can be factored as follows:\n");
 		printf("(");
 		Show1(g_E, Show(g_B, "x", 0));
 		printf(") (");
 		Show1(g_D, Show(g_B, "y", 0));
-		printf(") = %lld \n", R);
+		//printf(") = %lld \n", R);
+		std::cout << ") = " << R << "\n";
 		if (R != 0) {
 			printf("Then ");
 			Show1(g_E, Show(g_B, "x", 0));
-			printf(" must be a factor of %lld, so we must find the factors of %lld: \n", R, R);
+			//printf(" must be a factor of %lld, so we must find the factors of %lld: \n", R, R);
+			std::cout << " must be a factor of " << R << ", so we must find the factors of " << R << ":\n";
 		}
 		else {
 			printf("One of the parentheses must be zero, so: \n");
@@ -1691,8 +1698,8 @@ void SolveSimpleHyperbolic(void) {
 				SolByFact(R, T, g_B, g_D, g_E);
 				SolByFact(R, -T, g_B, g_D, g_E);
 				if (T*T != abs(R)) {
-					SolByFact(R, R / T, g_B, g_D, g_E);
-					SolByFact(R, -R / T, g_B, g_D, g_E);
+					SolByFact(R, MulPrToLong(R / T), g_B, g_D, g_E);
+					SolByFact(R, MulPrToLong(-R / T), g_B, g_D, g_E);
 				}
 			}
 		} /* end for */
@@ -1721,7 +1728,7 @@ void SolveParabolic(std::string x, std::string y, std::string x1) {
 	const long long s = 2 * g_A / r;
 	int t;
 	std::string t1;
-	long long r1 = 1, r2, u;
+	long long r1 = 1, r2=1, u;
 	mpz_int P, P1, P2, Q, Q1, Q2, R, R1, S, S1, S2,T;
 	P = r / 2;
 	Q = g_D;
@@ -2716,7 +2723,7 @@ int main(int argc, char* argv[]) {
 		return EXIT_SUCCESS;
 	}
 
-	/* code below is executed if an exception occurs*/
+	/* code below is executed only if an exception occurs*/
 	catch (const std::exception &exc)
 	{
 		// catch anything thrown within try block that derives from std::exception
@@ -2734,7 +2741,7 @@ int main(int argc, char* argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	catch (...) {   // catch block probably only be executed under /EHa 
+	catch (...) {   // catch block probably only would be executed under /EHa 
 					/* most likely to be a SEH-type exception */
 					//Eval_Exception(GetExceptionCode());
 		std::cerr << "Caught unknown exception in catch(...)." << std::endl;

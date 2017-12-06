@@ -7,7 +7,7 @@
 #define ZT(a) a.backend().data()
 
 const std::string sq = "^2";
-extern mpz_int Bi_H1, Bi_H2, Bi_K1, Bi_K2;   // used by ContFrac
+extern mpz_int Bi_H1, Bi_H2, Bi_K2;   // used by ContFrac
 extern long long g_A, g_B, g_D;
 extern mpz_int Bi_NUM, Bi_DEN;       // values set by GetRoot
 extern unsigned long long SqrtDisc;
@@ -52,8 +52,8 @@ void NextConv(mpz_int *Bi_Prev, mpz_int *Bi_Act, const mpz_int A1,
 
 /* uses global variables Bi_L1, Bi_L2, g_A, g_B, g_D, g_CY0, g_CY1
 values are returned in Bi_L1 and Bi_L2*/
-bool ShowHomoSols(int type, mpz_int Bi_SHH, mpz_int Bi_SHK, long long s, mpz_int T,
-	const mpz_int MagnifY, const std::string eqX, const std::string eqY, const mpz_int F) {
+bool ShowHomoSols(const int type, const mpz_int &Bi_SHH, const mpz_int &Bi_SHK, long long s, const mpz_int &T,
+	const mpz_int &MagnifY, const std::string &eqX, const std::string &eqY, const mpz_int &F) {
 
 	assert(_CrtCheckMemory());
 
@@ -190,7 +190,7 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, con
 	std::cout << "  T=" << T << "  MagnifY=" << MagnifY << "  A=" << A << "\n";
 	std::cout << "Bi_NUM=" << Bi_NUM << "  Bi_DEN=" << Bi_DEN;
 	std::cout << " Disc=" << Disc << "\n";*/
-	mpz_int A1, B1, M, M1, BiTmp;
+	mpz_int A1, B1, M, M1, BiTmp, Bi_K1;
 	long long Tmp;      
 	mpz_int Z, P, P1, Dp_P, Dp_M, Dp_Z, Dp_G, Dp_Mu, Dp_K, Dp_L, Dp_M1, Dp_P1, Dp_zz;
 	long long H1ModCY1 = 1, H2ModCY1 = 0, K1ModCY1 = 0, K2ModCY1 = 1;
@@ -656,8 +656,9 @@ bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, con
 * calls GetRoot which overwrites Bi_NUM, Bi_DEN                               *
 * uses global variables SqrtDisc
 ******************************************************************************/
-void SolContFrac(mpz_int H, long long T, mpz_int A, const long long B, mpz_int C,
+void SolContFrac(const mpz_int &H, long long T, mpz_int A, const long long B, mpz_int C,
 	std::string SCFstr) {
+	/* would be better to use vectors rather than fixed length arrays */
 	long long factor[64] = { 0 };
 	long long P[64] = { 0 };
 	long long Q[64] = { 0 };
@@ -672,8 +673,8 @@ void SolContFrac(mpz_int H, long long T, mpz_int A, const long long B, mpz_int C
 	long long VarD, VarK, VarQ, VarR, VarV, VarW, VarX, VarY, VarY1;
 	mpz_int gcdAF, Dp_A, Dp_B, Dp_C, Dp_R, Dp_S, Dp_T, MagnifY;
 	mpz_int Bi_Xcopy, Bi_Ycopy, OrigA, ValA, ValAM, ValB, ValBM, OrigC, ValC, ValCM;
-	int index, index2, cont;
-	int NbrFactors;
+	int cont;
+	unsigned int index, index2, NbrFactors;
 	int cuenta = 0;
 	bool ShowHR = false;
 
@@ -750,21 +751,25 @@ void SolContFrac(mpz_int H, long long T, mpz_int A, const long long B, mpz_int C
 			else {
 				while ((BiTmp % 2) == 0) {
 					factor[NbrFactors++] = 2;
+					assert(NbrFactors < sizeof(factor) / sizeof(factor[0]));
 					BiTmp /= 2;
 				}
 				while ((BiTmp % 3) == 0) {
 					factor[NbrFactors++] = 3;
+					assert(NbrFactors < sizeof(factor) / sizeof(factor[0]));
 					BiTmp /= 3;
 				}
 				s = 5;        /* Sequence of divisors 5, 7, 11, 13, 17, 19,... */
 				do {
 					while ((BiTmp%s) == 0) {
 						factor[NbrFactors++] = s;
+						assert(NbrFactors < sizeof(factor) / sizeof(factor[0]));
 						BiTmp /= s;
 					}
 					s += 2;
 					while ((BiTmp%s) == 0) {
 						factor[NbrFactors++] = s;
+						assert(NbrFactors < sizeof(factor) / sizeof(factor[0]));
 						BiTmp /= s;
 					}
 					s += 4;
@@ -778,12 +783,14 @@ void SolContFrac(mpz_int H, long long T, mpz_int A, const long long B, mpz_int C
 
 			mod[NbrFactors] = Tmp = 1;
 			Pp = MulPrToLong((2 * ValA) % ValF);
-			for (index = NbrFactors - 1; index >= 0; index--) {
+			for (index = NbrFactors - 1; ; index--) {
 				P[index] = Pp;
 				Tmp *= factor[index];
 				mod[index] = Tmp;
 				Pp = MultMod(MultMod(Pp, factor[index], MulPrToLong(ValF)),
 					factor[index], MulPrToLong(ValF));
+				if (index == 0) 
+					break;
 			}
 			Modulo = factor[NbrFactors - 1];  // get largest prime factor
 			ValAM = (ValA + Modulo) % Modulo;
@@ -1197,8 +1204,9 @@ void ModInv(mpz_int* op, mpz_int Val, mpz_int Mod) {
 	else {
 		*op = 0;
 	}
-		return;		
+	return;		
 }
+
 /* Calculate Num1*Num2 mod Mod.
 /* removes overflow risk. sign of result is same as sign of Num1*Num2 */
 long long MultMod(long long Num1, long long Num2, long long Mod) {
