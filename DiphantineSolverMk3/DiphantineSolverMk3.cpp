@@ -81,7 +81,7 @@ unsigned long long llSqrt(unsigned long long num) {
 }
 
 /* get sqare root of ext prec. num. If num > 128 bits will get overflow.*/
-unsigned long long llSqrt(mpz_int num) {
+unsigned long long llSqrt(const mpz_int &num) {
 	mpz_t rv;
 	unsigned long long llrv;
 
@@ -106,7 +106,7 @@ long long gcd(long long M, long long N) {
 }
 
 /* calculate Greatest Common Divisor for Bigints*/
-void gcd(const mpz_int Dp_Nbr1, const mpz_int Dp_Nbr2, mpz_int *Dp_Gcd) {
+void gcd(const mpz_int &Dp_Nbr1, const mpz_int &Dp_Nbr2, mpz_int *Dp_Gcd) {
 	mpz_t gcd;
 	mpz_init(gcd);
 	mpz_gcd(gcd, ZT(Dp_Nbr1), ZT(Dp_Nbr2));
@@ -356,7 +356,7 @@ long long floordiv(long long num, long long den) {
 i.e. rounds q down towards -infinity. The only difference from
 < DivLargeNumberRem> is that this function does not return a value but
 < DivLargeNumberRem> returns the remainder as a long long. */
-void DivLargeNumber(const mpz_int n, const mpz_int d, mpz_int *q) {
+void DivLargeNumber(const mpz_int &n, const mpz_int &d, mpz_int *q) {
 	mpz_t qq;
 
 	if (d == 0) {
@@ -456,7 +456,7 @@ long long DivLargeNumberLL(const mpz_int &n, const mpz_int &d) {
 It returns true if K and L are valid.
 called from ShowSols */
 bool CalculateKandL(const long long A, const long long B, const long long C, const long long D,
-	const long long E, const mpz_int Bi_R, const mpz_int Bi_s, mpz_int *L, mpz_int *K) {
+	const long long E, const mpz_int &Bi_R, const mpz_int &Bi_s, mpz_int *L, mpz_int *K) {
 	mpz_int Dp_H1, Dp_H2, Dp_K1;
 #ifdef temp
 	std::cout << "**temp CalculateKandL "
@@ -528,7 +528,7 @@ Uses global variables: A, B, C, D, E
 type = hyperbolic_homog (homogenous) or hyperbolic_gen (general hyperbolic)
 return 1 if K or L not integers, otherwise zero
 If K and L are integers, print values for P, Q, K, R, S, L*/
-int ShowSols(equation_class type, const mpz_int m, const mpz_int n) {
+int ShowSols(equation_class type, const mpz_int &m, const mpz_int &n) {
 	mpz_int K, L, Mp_H1;
 #ifdef temp
 	std::cout << "**temp ShowSols  m=" << m << " n=" << n << " g_C=" << g_C << "\n";
@@ -696,7 +696,7 @@ bool CheckMod(long long R, long long S, long long X2, long long X1, long long X0
 }
 
 /* convert extended precision Nbr to string */
-std::string numToStr(const mpz_int Dp_Nbr) {
+std::string numToStr(const mpz_int &Dp_Nbr) {
 	std::string nbrOutput;
 	char* buffer = NULL;
 	// convert to null-terminated ascii string, base 10, with sign if -ve
@@ -715,7 +715,8 @@ std::string numToStr(long long num) {
 }
 
 /* print ax^2 +bxy +cy2  (with apppropriate signs)*/
-void ShowBigEq(mpz_int Dp_A, mpz_int Dp_B, mpz_int Dp_C, std::string x, std::string y) {
+void ShowBigEq(const mpz_int &Dp_A, const mpz_int &Dp_B, const mpz_int &Dp_C, 
+	const std::string &x, const std::string &y) {
 	if (Dp_A != 0) {
 		if (Dp_A !=1)
 			gmp_printf("%Zd%s%s ", ZT(Dp_A), x.c_str(), sq.c_str());
@@ -749,7 +750,7 @@ long long MulPrToLong(const mpz_int &x) {
 
 /* prepare for solving by continued fractions.
 return values in global variables pDisc, SqrtDisc, Bi_NUM, Bi_DEN */
-void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, mpz_int *pDisc) {
+void GetRoot(const mpz_int &BiA, const mpz_int &BiB, const mpz_int &BiC, mpz_int *pDisc) {
 	long long A, B, C, M, P, T, Z;
 	mpz_int BiP, BiM, BiZ, BiG, BiK, BiDisc;
 	bool NUMis0;
@@ -898,7 +899,7 @@ void GetRoot(const mpz_int BiA, const mpz_int BiB, const mpz_int BiC, mpz_int *p
 /* return gcd (P,Q,R), unless gcd is not a factor of S.
 In that case return 0 */
 mpz_int DivideGcd(mpz_int P, mpz_int Q, mpz_int R, mpz_int S,
-	const std::string x1, const std::string y) {
+	const std::string &x1, const std::string &y) {
 	int t;
 	mpz_int N;
 	gcd(Q, R, &N);
@@ -976,7 +977,7 @@ mpz_int DivideGcd(mpz_int P, mpz_int Q, mpz_int R, mpz_int S,
 //	else return -1;
 //}
 
-int Comparev(const void * Bi_array, const mpz_t Bi_K1) {
+int Comparev(const void * Bi_array, const mpz_t &Bi_K1) {
 	mpz_t tempZ;
 	memcpy(tempZ, Bi_array, sizeof(mpz_t));
 	return mpz_cmp(tempZ, Bi_K1);
@@ -989,7 +990,7 @@ int Comparev(const void * Bi_array, const mpz_t Bi_K1) {
 by the std::vector STL so the mpz_t structures and the values they contain are
 are copied from the stack to  blocks in the heap and the vectors contain pointers
 to the copies on the heap. */
-void InsertNewSolution(const mpz_int Bi_x, mpz_int Bi_y) {
+void InsertNewSolution(const mpz_int &Bi_x, const mpz_int &Bi_y) {
 	ptrdiff_t indexVector = 0, compare;
 	size_t sizeVector = 0, increment;
 	/* temporary  */
@@ -1056,7 +1057,7 @@ std::string par(long long num) {
 	}
 	return "" + numToStr(num);
 }
-std::string par(mpz_int num) {
+std::string par(const mpz_int &num) {
 	if (num<0) {
 		return "(" + numToStr(num) + ")";
 	}
@@ -1067,7 +1068,7 @@ std::string par(mpz_int num) {
 std::string par1(long long num) {
 	return (num == 1) ? "" : par(num);
 }
-std::string par1(mpz_int num) {
+std::string par1(const mpz_int &num) {
 	return (num == 1) ? "" : par(num);
 }
 
@@ -1202,7 +1203,7 @@ output is 'prettied up' by:
 2.	if Xi =0 & X1 NE 0 don't print 'xi +' i.e just print x = X1*t 
 3. if value of X1 is +/- 1 just print x = Xi +/-t without the digit 1.
 4. same rules apply for y */
- void PrintLinear(mpz_int Xi, mpz_int Xl, mpz_int Yi, mpz_int Yl, std::string va) {
+ void PrintLinear(mpz_int Xi, mpz_int Xl, mpz_int Yi, mpz_int Yl, const std::string &va) {
 	if (va == "t") {         // actually, va always = t
 		showAlso();
 	}
@@ -1329,6 +1330,7 @@ int Linear(long long D, mpz_int E, mpz_int F) {
 		E = E / Q;
 		F = F / Q;   // divide by gcd
 	}
+
 	if (teach) {
 		if (Q != 1) {
 			std::cout << divgcd;    // show new values after division by gcd
@@ -1337,6 +1339,7 @@ int Linear(long long D, mpz_int E, mpz_int F) {
 		}
 		printf("Now we must apply the Generalized Euclidean algorithm: \n");
 	}
+
 	mpz_int U1 = 1;
 	long long U2 = 0;
 	mpz_int U3 = D;
@@ -1417,8 +1420,8 @@ bool Mod(long long mod) {
 }
 
 /* called from SolveElliptical */
-void ShowElipSol(long long A, long long B, long long D, long long u, std::string x, 
-	std::string x1, std::string y, mpz_int w2) {
+void ShowElipSol(long long A, long long B, long long D, long long u, const std::string &x, 
+	const std::string &x1, const std::string &y,const mpz_int &w2) {
 	if (teach) {
 		putchar('\n');
 		ShowLin(2 * A, B, D, x, y);
@@ -1504,7 +1507,7 @@ void ShowRecursion(equation_class type) {
 }
 
 /* called from SolveSimpleHyperbolic */
-void SolByFact(mpz_int R, long long T, long long B, long long D, long long E) {
+void SolByFact(const mpz_int &R, long long T, long long B, long long D, long long E) {
 	if (teach) {
 		std::cout << T << " is a factor of " << R << ", so we can set:\n";
 		Show1(E, Show(B, "x", 0));
@@ -1544,8 +1547,9 @@ void SolByFact(mpz_int R, long long T, long long B, long long D, long long E) {
 /* The discriminant is a perfect square;
 the equation can be represented as the product of 2 linear expressions.
 uses global variables A, B, g_D, g_CY0, g_CY1 */
-void SolveDiscIsSq(mpz_int BiN0, std::string x, std::string y, long long SqrtD, mpz_int Bi_g, 
-	mpz_int Bi_h, mpz_int BiN1, std::string y1, std::string x1) {
+void SolveDiscIsSq(const mpz_int &BiN0, const std::string &x, const std::string &y, long long SqrtD, 
+	const mpz_int &Bi_g, const mpz_int &Bi_h, const mpz_int &BiN1, 
+	const std::string &y1, const std::string &x1) {
 
 	long long Yc = llSqrt(Bi_g / Bi_h);
 	long long Xc = llSqrt(abs(g_CY1 / Bi_h));
@@ -1952,7 +1956,7 @@ void SolveParabolic(std::string x, std::string y, std::string x1) {
 }
 
 /* uses global variables g_A, g_B, g_C, g_D, g_E, g_F */
-void SolveElliptical(std::string x, std::string x1, std::string y) {
+void SolveElliptical(const std::string &x, const std::string &x1, const std::string &y) {
 	
 	const mpz_int NegDisc = -Bi_Disc;   // get -ve of discriminant
 	const mpz_int E1 = 4 * g_A*g_E - 2 * g_B*g_D;
@@ -2496,7 +2500,7 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 
 
 /* get a number from the input stream */
-long long getnumber(std::string msg) {
+long long getnumber(const std::string &msg) {
 	long long result;
 	std::cout << msg;
 	while (1) {

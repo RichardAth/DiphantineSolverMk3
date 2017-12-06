@@ -32,8 +32,8 @@ std::string FP = "";
 /*  Act = Prev * A2 + Act * B2;            */
 /*  Prev = Tmp;                            */
 /*******************************************/
-void NextConv(mpz_int *Bi_Prev, mpz_int *Bi_Act, const mpz_int A1,
-	const mpz_int A2, const mpz_int B1, const mpz_int B2) {
+void NextConv(mpz_int *Bi_Prev, mpz_int *Bi_Act, const mpz_int &A1,
+	const mpz_int &A2, const mpz_int &B1, const mpz_int &B2) {
 	mpz_int t1, t2, tmp;
 
 	/*std::cout << "**temp NextConv: Prev = " << *Bi_Prev;
@@ -183,8 +183,8 @@ bool ShowHomoSols(const int type, const mpz_int &Bi_SHH, const mpz_int &Bi_SHK, 
 * uses global variables Bi_NUM, Bi_DEN, Bi_H1, Bi_H2, Bi_K1, Bi_K2, NbrCo  *
 *     NbrEqs, Eqnbr, NbrSols, g_A2, g_B2, g_CY0, g_CY1, SqrtDisc           *
 ****************************************************************************/
-bool ContFrac(const mpz_int Dp_A, int type, const int SqrtSign, long long s, const mpz_int T,
-	mpz_int MagnifY, mpz_int A, const mpz_int Disc, const mpz_int F) {
+bool ContFrac(const mpz_int &Dp_A, int type, const int SqrtSign, long long s, const mpz_int &T,
+	mpz_int MagnifY, mpz_int A, const mpz_int &Disc, const mpz_int &F) {
 
 	/*std::cout << "**temp ContFrac: type=" << type << "  SqrtSign=" << SqrtSign << "  s=" << s;
 	std::cout << "  T=" << T << "  MagnifY=" << MagnifY << "  A=" << A << "\n";
@@ -1194,7 +1194,7 @@ long long ModInv(const long long Val, const long long Mod) {
 	}
 	return (U1 + Mod) % Mod;
 }
-void ModInv(mpz_int* op, mpz_int Val, mpz_int Mod) {
+void ModInv(mpz_int* op, const mpz_int &Val, const mpz_int &Mod) {
 	mpz_int rv;
 
 	int ok = mpz_invert(ZT(rv), ZT(Val), ZT(Mod));
@@ -1220,7 +1220,7 @@ long long MultMod(long long Num1, long long Num2, long long Mod) {
 	x = MulPrToLong(Prod);   // magnitude of Prod  < Mod, therfore cannot overflow.
 	return x;
 }
-long long MultMod(mpz_int Num1, mpz_int Num2, mpz_int Mod) {
+long long MultMod(const mpz_int &Num1, const mpz_int &Num2, mpz_int Mod) {
 	mpz_int Prod;
 	long long x;
 
