@@ -606,10 +606,10 @@ bool ContFrac(const mpz_int &Dp_A, int type, const int SqrtSign, long long s, co
 				else {
 					BiTmp = (A1 + Z*g_A2) % T;
 					A1 = g_A2; 
-					g_A2 = Tmp;
+					g_A2 = BiTmp;
 					BiTmp = (B1 + Z*g_B2) % T;
 					B1 = g_B2; 
-					g_B2 = Tmp;
+					g_B2 = BiTmp;
 				}
 			}
 			Dp_Mu = -Dp_Mu;
