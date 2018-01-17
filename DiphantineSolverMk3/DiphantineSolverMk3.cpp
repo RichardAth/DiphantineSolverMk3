@@ -1,6 +1,7 @@
 ﻿#define _CRTDBG_MAP_ALLOC  
 #include <stdlib.h>  
-#include <crtdbg.h>  
+#include <crtdbg.h> 
+#include <safeint.h>
 
 #include "stdafx.h"
 #include <windows.h> 
@@ -60,12 +61,17 @@ typedef  std::vector <void *> ArrayLongs;
 ArrayLongs sortedSolsXv;
 ArrayLongs sortedSolsYv;
 
+uint32_t *primeFlags = NULL; /* 1 bit for each odd number, 1 = not prime, 0 = prime */
+unsigned long long *primeList = NULL;
+unsigned int prime_list_count = 0;
+unsigned long long int primeListMax = 0;
+
 void listLargeSolutions();
 
 /* print a string variable. This is a relic from the original java program */
-void w(std::string texto) {
-	std::cout << texto;
-}
+//void w(std::string texto) {
+//	std::cout << texto;
+//}
 
 /* calculate integer square root */
 unsigned long long llSqrt(unsigned long long num) {
@@ -501,7 +507,7 @@ void ShowLargeNumber(const mpz_int &Bi_Nbr) {
 
 	// convert to null-terminated ascii string, base 10, with sign if -ve
 	buffer = mpz_get_str(NULL, 10, ZT(Bi_Nbr));
-	msglen = strnlen(buffer, 50000);  // arbitrary limit of 50000
+	msglen = strnlen(buffer, 500000);  // arbitrary limit of 500000
 	if (buffer[0] == '-') {  // if number is -ve
 		nbrOutput = "-";
 		index = 1;
@@ -509,8 +515,14 @@ void ShowLargeNumber(const mpz_int &Bi_Nbr) {
 	for (; index < msglen; index++) {
 		if ((msglen - index) % digitsInGroup == 0) {
 			// divide digits into groups, if there are more than 6 digits
-			if ((index > 0 && buffer[0] != '-') || (index > 1))
-				nbrOutput += " ";  // put space after group of digits
+			if ((index > 0 && buffer[0] != '-') || (index > 1)) {
+				nbrOutput += " ";  // put space after group of digits 
+				if ((msglen - index) > 100) {
+					nbrOutput += "... ";   // if more than 100 digits left, don't print them all
+					while (msglen > (digitsInGroup + index))
+						index += digitsInGroup;
+				}
+			}
 		}
 		nbrOutput += buffer[index];
 	}
@@ -634,7 +646,8 @@ void ShowRecursionRoot(equation_class type) {
 /* called from classify. Returns true if equation has no solutions*/
 bool CheckMod(long long R, long long S, long long X2, long long X1, long long X0) {
 	long long Y2 = gcd(R, S);
-	long long fact = 2;
+	size_t i = 0;
+	long long fact = primeList[i];
 	int indH = 1;
 	long long D1 = abs(Y2);
 	long long factors[64];    // holds factors of Y2
@@ -651,7 +664,7 @@ bool CheckMod(long long R, long long S, long long X2, long long X1, long long X0
 			}
 		}
 	}
-	/* store factors of D1 in array */
+	/* store factors of D1 in array factors*/
 	while (D1 >= fact*fact) {
 		int T = 0;
 		while (D1%fact == 0) {
@@ -661,11 +674,10 @@ bool CheckMod(long long R, long long S, long long X2, long long X1, long long X0
 			}
 			D1 /= fact;      // remove factor
 		}
-		fact++;
-		if (fact>3) {
-			fact++;  // skip even numbers other than 2
-		}
+		i++;
+		fact = primeList[i];
 	}
+
 	if (D1>1) {
 		factors[indH++] = D1;
 	}
@@ -673,12 +685,12 @@ bool CheckMod(long long R, long long S, long long X2, long long X1, long long X0
 	/* now have list of factors. indH is the number of factors*/
 	for (int T = 1; T<indH; T++) {
 		if (factors[T]>1) {
-			long long Z = ((X1*X1 - 4 * X0*X2) % factors[T]) + factors[T];
+			mpz_int Z = ((X1*X1 - 4 * X0*X2) % factors[T]) + factors[T];
 			long long N = (factors[T] - 1) / 2;
 			long long Y = 1;
 			while (N != 0) {
 				if (N % 2 != 0) {
-					Y = (Y*Z) % factors[T];
+					Y = MulPrToLong((Y*Z) % factors[T]);
 				}
 				N /= 2;
 				Z = (Z*Z) % factors[T];
@@ -751,8 +763,8 @@ long long MulPrToLong(const mpz_int &x) {
 /* prepare for solving by continued fractions.
 return values in global variables pDisc, SqrtDisc, Bi_NUM, Bi_DEN */
 void GetRoot(const mpz_int &BiA, const mpz_int &BiB, const mpz_int &BiC, mpz_int *pDisc) {
-	long long A, B, C, M, P, T, Z;
-	mpz_int BiP, BiM, BiZ, BiG, BiK, BiDisc;
+	long long A, B, T, Z;
+	mpz_int  BiP, BiM, BiZ, BiG, BiK, BiDisc;
 	bool NUMis0;
 
 	BiDisc = BiB*BiB - 4 * BiA*BiC;
@@ -799,17 +811,7 @@ void GetRoot(const mpz_int &BiA, const mpz_int &BiB, const mpz_int &BiC, mpz_int
 		T = 3;
 
 		// remove any repeated factors from A (=BiG), put sqrt(product of repeated factors) in B
-		while (A % 4 == 0) {
-			A /= 4;   // remove factor 2^2
-			B *= 2;
-		}
-		while (A >= T*T) {
-			while (A % (T*T) == 0) {
-				A /= T*T;   // remove factor T^2
-				B *= T;
-			}
-			T += 2;
-		}
+		adjustGandK(A, B);
 		/* B is the product of the factors removed from A (which is the GCD of NUM^2, DEN^2 , BiDisc)*/
 		if (B != 1) {
 			DivLargeNumberRem(Bi_NUM, B, &Bi_NUM);   // NUM /= B (floor division)
@@ -856,37 +858,41 @@ void GetRoot(const mpz_int &BiA, const mpz_int &BiB, const mpz_int &BiC, mpz_int
 		printf("%lld", Z);
 		std::string sep = "+ //";
 		int cont = -1;
-		B = P = C = M = -1;
+		{
+			mpz_int B, P, C, M;
+			B = P = C = M = -1;
 
-		while (cont<0 || B != P || C != M) {
-			std::cout << sep;
-			sep = ", ";
+			while (cont < 0 || B != P || C != M) {
+				std::cout << sep;
+				sep = ", ";
 
-			if (cont<0 && (BiP > 0) && (BiP < SqrtDisc + BiM)
-				/*  is P > 0 and P < SqrtDisc+M ?*/
-				&& (BiM > 0) && (BiM <= SqrtDisc))
-				/*  is M > 0 and M <= SqrtDisc ?*/	{
+				if (cont < 0 && (BiP > 0) && (BiP < SqrtDisc + BiM)
+					/*  is P > 0 and P < SqrtDisc+M ?*/
+					&& (BiM > 0) && (BiM <= SqrtDisc))
+					/*  is M > 0 and M <= SqrtDisc ?*/ {
 
-				putchar('\n');
-				B = P = MulPrToLong(BiP);
-				C = M = MulPrToLong(BiM);
-				cont = 0;
+					putchar('\n');
+					B = P = BiP;
+					C = M = BiM;
+					cont = 0;
+				}
+
+				if (cont >= 0) {
+					P = (*pDisc - M*M) / P;  /* both numerator and denominator are positive */
+					Z = MulPrToLong((SqrtDisc + M) / P);
+					M = Z*P - M;
+					cont++;
+				}
+				else {
+					BiG = BiDisc - BiM * BiM;        // G = Disc-M^2
+					DivLargeNumber(BiG, BiP, &BiK);  // K=G/P
+					BiP = BiK;
+					BiZ = SqrtDisc + ((BiK < 0) ? 1 : 0);
+					Z = DivLargeNumberLL(BiZ + BiM, BiK);
+					BiM = Z * BiK - BiM;
+				}
+				printf("%lld", Z);
 			}
-			if (cont >= 0) {
-				P = MulPrToLong((*pDisc - M*M) / P);  /* both numerator and denominator are positive */
-				Z = (SqrtDisc + M) / P;
-				M = Z*P - M;
-				cont++;
-			}
-			else {
-				BiG = BiDisc - BiM * BiM;        // G = Disc-M^2
-				DivLargeNumber(BiG, BiP, &BiK);  // K=G/P
-				BiP = BiK;                  
-				BiZ = SqrtDisc + ((BiK < 0) ? 1 : 0); 
-				Z = DivLargeNumberLL(BiZ + BiM, BiK);
-				BiM = Z * BiK - BiM;
-			}
-			printf("%lld", Z);
 		}
 		printf("//\nwhere the periodic part is on 2nd line");
 		if (cont>1) {
@@ -1396,14 +1402,19 @@ int Linear(long long D, mpz_int E, mpz_int F) {
 
 /* uses global variables A, B, C, D, E, F.
 returns true if there are no solutions. */
-bool Mod(long long mod) {
-	for (long long x = 0; x<mod; x++) {
-		long long z = g_A*x*x + g_D*x + g_F;
-		long long t = g_B*x + g_E;
-		for (long long y = 0; y<mod; y++) {
-			if ((z + y*(t + g_C*y)) % mod == 0) {
+bool Mod(int mod) {
+	msl::utilities::SafeInt <long long> sA(g_A), sB(g_B), sC(g_C), sD(g_D), sE(g_E), sF(g_F);
+
+	for (msl::utilities::SafeInt <long long> x = 0; x<mod; x++) {
+		/* calculate z & t, but check for overflow */
+		msl::utilities::SafeInt <long long> z = sA*x*x + sD*x + sF;
+		msl::utilities::SafeInt <long long> t = sB*x + sE;
+		for (msl::utilities::SafeInt <long long> y = 0; y<mod; y++) {
+			if ((z + y*(t + sC*y)) % mod == 0) {
+				long long xx = x;
+				long long yy = y;
 				if (teach) {
-					std::cout << "solution found using x= " << x << ", y=" << y;
+					std::cout << "solution found using x= " << xx << ", y=" << yy;
 					std::cout << " mod = " << mod << "\n";
 				}
 				return false;  // there is a solution
@@ -1965,7 +1976,8 @@ void SolveElliptical(const std::string &x, const std::string &x1, const std::str
 	const mpz_int CY1 = NegDisc / g;
 	const mpz_int CY0 = E1/2/ g;
 	const mpz_int N0 = CY0*CY0*g - CY1*F1;
-	const double sqrtgN0 = sqrt((double)g*(double)N0);
+	// If N0 is -ve, square root is not a real number; test later whether N0  is negative
+	const double sqrtgN0 = sqrt((double)g*(double)N0);  
 
 	int b;
 	long long u;
@@ -2060,12 +2072,145 @@ void SolveElliptical(const std::string &x, const std::string &x1, const std::str
 	}
 }
 
+
+// return value of bit in array corresponding to x. 0 indicates a prime number
+static int getBit(const unsigned long long int x, uint32_t * array)
+{
+	unsigned long long int index;
+	int bit;
+
+	//index = x / 64;
+	index = x >> 6;
+	//bit = (x % 64) / 2;
+	bit = (x & 0x3f) >> 1;   // get last 6 bits, then divide by 2
+							 /* printf ("x = %d, index = %d, bit = %d, mask = %d\n", x, index, bit, mask) ; */
+	return ((array[index] >> bit) & 1);
+
+}
+
+/* sets bit in 'array' corresponding to 'x' to 1 */
+/* assume 'num' is odd. no bits are stored for even numbers */
+/* assume an element of 'array' is 32 bits */
+static int setBit(const unsigned long long int x, uint32_t * array) {
+	unsigned long long int index;
+	int bit, mask;
+
+	//index = x / 64;
+	index = x >> 6;
+	//bit = (x % 64) / 2;
+	bit = (x & 0x3f) >> 1;   // get last 6 bits, then divide by 2
+	mask = (1 << bit);
+
+	/* printf ("x = %d, index = %d, bit = %d, mask = %d\n", x, index, bit, mask) ; */
+	array[index] |= mask; /* OR mask bit into array word */
+	return (0);
+}
+
+void generatePrimes(unsigned long long int max_val) {
+	unsigned long long int numsave, count = 1, num = 3;
+	size_t plist_size = 0;
+	unsigned long long int sqrt_max_val;
+	int cutoff = 0;
+
+	if (primeListMax >= max_val)
+		return;  // nothing to do if prime list already generated
+
+	max_val += 63 - (max_val + 63) % 64;  // round up to next multiple of 64
+	sqrt_max_val = llSqrt(max_val);
+
+	/* initialise flags */
+	/* allocate 1 byte if max_val = 1-15, 2 bytes if 16-31, etc */
+	if (primeFlags != NULL) free(primeFlags);	// if generatePrimes has been called before
+												// clear out old prime list
+	primeFlags = (uint32_t*)calloc((max_val / 16) + 1, 1);
+	assert(primeFlags != NULL);
+
+	// allocate storage for primeList if required
+	{
+		fprintf(stdout, "Expected no of primes is %.0f\n",
+			(double)max_val / (log((double)max_val) - 1));
+		if (primeList != NULL) free(primeList);
+		plist_size = (size_t)((double)max_val / (log((double)max_val) - 1)) * 102 / 100;
+		// add 2% for safety
+		primeList = (unsigned long long *)malloc(plist_size * sizeof(long long));
+		assert(primeList != NULL);
+		prime_list_count = 1;
+		primeList[0] = 2;  // put 1st prime into list
+	}
+
+	while (num <= max_val)
+	{
+		if (getBit(num, primeFlags) == 0)
+		{   /* we have found a prime number */
+			primeList[count] = num;
+			count++;
+			numsave = num;
+
+			if (num <= sqrt_max_val)  /* check whether starting value for i is already
+									  more than max_val, while avoiding an integer overflow*/
+				for (unsigned long long int i = num*num; i <= max_val; i += (num * 2))
+				{ /* mark all odd multiples of num in range as not prime */
+				  /* starting value is num*num rather than num*3 because the flag bits for
+				  multiples of num less than num*num are already set and using num*num
+				  makes the program run significantly faster */
+					setBit(i, primeFlags);
+				}
+		}
+		num += 2;	// advance to next possible prime
+	}
+
+	// after completing the for loop we have found all the primes < max_val
+	printf("  prime %9lld is %11lld\n", count, numsave);
+	primeList[count] = ULLONG_MAX;		// set end marker
+	prime_list_count = (unsigned int)count;
+	primeListMax = primeList[count - 1];
+	return;  // return value is used for problem 10
+}
+
+/* remove any double factors from G, add same factor to to K 
+The two versions are functionally the same but G has different types. 
+This function, using a prime number list, was added to speed things up. */
+void adjustGandK(mpz_int &G, long long &K) {
+	long long T;
+	size_t i = 0;
+	K = 1;
+	assert(G <= primeListMax*primeListMax);  /* if G is too large, we have a 
+		problem. Factorising large numbers is very slow. This method using a 
+		list of prime numbers is simple, but gets too slow for large numbers. */
+
+	/* remove any double factors from G, add same factor to to K*/
+	T = primeList[i];
+	while (abs(G) >= T*T) {     // remove factor T
+		while (G % (T*T) == 0) {
+			G /= T*T; K *= T;
+		}
+		i++;
+		T = primeList[i]; ;    // advance to next odd number
+	}
+}
+void adjustGandK(long long &G, long long &K) {
+	long long T;
+	size_t i = 0;
+	K = 1;
+	assert(G <= primeListMax*primeListMax);
+	/* remove any double factors from G, add same factor to to K*/
+	T = primeList[i];
+	while (abs(G) >= T*T) {     // remove factor T
+		while (G % (T*T) == 0) {
+			G /= T*T; K *= T;
+		}
+		i++;
+		T = primeList[i]; ;    // advance to next odd number
+	}
+}
+
 /* determine type of equation. Also some basic checks for cases where there is no solution,
 divide all coefficients by their gcd if gcd > 1, and calculate the discriminant */
 equation_class	classify(const long long a, const long long b, const long long c,
 	const long long d, const long long e, const long long f) {
 	long long gcdA_E;
 	bool DiscIsPerfSqare;
+	mpz_int Bi_a, Bi_b, Bi_c;
 
 	/* get gcd of A, B, C, D, E. gcd = zero only if they are all zero*/
 	gcdA_E = gcd(a, gcd(b, gcd(c, gcd(d, e))));
@@ -2112,23 +2257,30 @@ equation_class	classify(const long long a, const long long b, const long long c,
 		if (CheckMod(g_B, g_C, g_A, g_D, g_F))
 			return no_soln;
 
+	Bi_a = g_A; Bi_b = g_B; Bi_c = g_C;   // copy A, B and C to extended-precision ints
+	Bi_Disc = Bi_b*Bi_b - 4 * Bi_a*Bi_c; // get discriminant (now eliminated possibility of overflow)
 	
-	Bi_Disc = g_B*g_B - 4 * g_A*g_C; // get discriminant
-	//g_Disc = MulPrToLong(Bi_Disc);  // temporary?? assume Disc will fit into 64-bit number
 	DiscIsPerfSqare = mpz_perfect_square_p(ZT(Bi_Disc));  // true if Disc is a perfect square
 
 	if (Bi_Disc > 0 && !DiscIsPerfSqare &&
-		g_D == 0 && g_E == 0 && g_F != 0)
-		return hyperbolic_homog;  /* Bi_Disc is not a perfect square  and D, E are 0, 
+		g_D == 0 && g_E == 0 && g_F != 0) {
+		if (teach)
+			std::cout << "Equation is Hyperbolic Homogeneous\n";
+		return hyperbolic_homog;  /* Bi_Disc is not a perfect square  and D, E are 0,
 							and F is non-zero. This is a type of homogeneous equation*/
+	}
 
 	if (g_A == 0 && g_C == 0) {
 		if (g_B == 0) {
 			/* linear equation: A=B=C=0 */
+			if (teach)
+				std::cout << "Equation is Linear\n";
 			return linear;
 		}
 		else {
 			/* simple hyperbolic; A = C = 0; B ≠ 0. It follows that Disc > 0 */
+			if (teach)
+				std::cout << "Equation is Simple Hyperbolic\n";
 			return simple_hyperbolic;
 		}
 	}
@@ -2144,14 +2296,28 @@ equation_class	classify(const long long a, const long long b, const long long c,
 		printf("There are solutions, so we must continue.\n");
 	}
 
-	if (Bi_Disc == 0)
+	if (Bi_Disc == 0) {
+		if (teach)
+			std::cout << "Equation is Parabolic\n";
 		return parabolic;
+	}
 
-	if (Bi_Disc < 0)
+	if (Bi_Disc < 0) {
+		if (teach)
+			std::cout << "Equation is Elliptical\n";
 		return elliptical;
-	if (!DiscIsPerfSqare)
+	}
+
+	if (!DiscIsPerfSqare) {
+		if (teach)
+			std::cout << "Equation is General Hyperbolic\n";
 		return hyperbolic_gen;  // hyperbolic, not in other hyperbolic classes above
-	else return hyperbolic_disc_ps;  // hyperbolic, disc is a perfect square
+	}
+	else {
+		if (teach)
+			std::cout << "Equation is Hyperbolic and the Discriminant is a perfect square\n";
+		return hyperbolic_disc_ps;  // hyperbolic, disc is a perfect square
+	}
 }
 
 /* Solve Diophantine equations of the form: Ax^2 + Bxy + Cy^2 + Dx + Ey + F = 0
@@ -2243,24 +2409,9 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 		teach = teachaux;    // restore saved value of teach
 
 		G = H = g_F;
-		K = 1;
-
-		/* remove any double factors from G, add to K*/
-		while (G % 4 == 0) {
-			G /= 4;          // remove double 2
-			K *= 2;
-		}
-
-		T = 3;             // remove odd factors
-		while (abs(G) >= T*T) {
-			while (G % (T*T) == 0) {
-				G /= T*T;
-				K *= T;
-			}
-			T += 2;   // advance to next odd number
-		}
-
+		adjustGandK(G, K);   /* remove any double factors from G, add same factor to to K*/
 		/* K is the product of all the prime factors removed from G*/
+		/* find all divisors of K */
 		for (T = 1; T*T <= K; T++) {
 			if (K%T == 0) {
 				/* call SolContFrac for each factor of K  <= sqrt(K)*/
@@ -2441,20 +2592,8 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 		GetRoot(NegDisc/g/h, 0, g/h, &Disc2);  // values returned in Disc, SqrtDisc, Bi_NUM, Bi_DEN, used by SolContFrac
 
 		G = H = -BiN0 / h;
-		K = 1;
-		T = 3;
-		/* remove any double factors from G, add same factor to to K*/
-		while (G % 4 == 0) {   // 1st check for factor 2
-			G /= 4;   
-			K *= 2;
-		}
-		while (abs(G) >= T*T) {     // remove odd factors
-			while (G % (T*T) == 0) {
-				G /= T*T; K *= T;
-			}
-			T += 2;    // advance to next odd number
-		}
-
+		adjustGandK(G, K);  /* remove any double factors from G, add same factor to to K*/
+		/* K is now the product of all the prime factors removed from G*/
 		/* find all divisors of K */
 		for (T = 1; T*T <= K; T++) {
 			if (K%T == 0) {
@@ -2518,6 +2657,27 @@ long long getnumber(const std::string &msg) {
 	return result;
 }
 
+// generate a pseudo-random 64 bit integer.
+static long long random64seed = 6497134987403476168;
+void srandom64(unsigned long long seed) {
+	random64seed = seed;
+}
+
+// generate a pseudo-random 64 bit integer.
+/* The state must be seeded so that it is not everywhere zero. */
+uint64_t random64(void) {
+	static	uint64_t s[16] = { 464,463,822369, 78528, 6874, 16971, 27436, 13934645, 38572,
+		2374348, 371941, 69429462649, 32716, 36586, 3258852, 2193 };
+	static int p = 0;
+	const uint64_t s0 = s[p];
+	uint64_t s1 = s[p = (p + 1) & 15];
+
+	s1 ^= s1 << 31; // a
+	s[p] = s1 ^ s0 ^ (s1 >> 11) ^ (s0 >> 30); // b, c
+	return s[p] * UINT64_C(1181783497276652981);
+}
+
+
 /* Entry point for program. Get parameters and call solveEquation */
 int main(int argc, char* argv[]) {
 	/* putting try here means that any exception thrown anywhere will be caught */
@@ -2526,13 +2686,15 @@ int main(int argc, char* argv[]) {
 		char yn = '\0';
 		bool test = false;
 		std::cout << "Compiled on " << __DATE__ " at " __TIME__ "\n";
+		generatePrimes(1LL << 30);
 		while (toupper(yn) != 'Y' && toupper(yn) != 'N') {
-			std::cout << "Enter own data (else run standard tests)? (Y/N): ";
+			std::cout << "Enter own data (Y/N)? (N = run standard tests) : ";
 			std::cin >> yn;
 			if (std::cin.good()) {
 				test = (toupper(yn) == 'N');
 			}
-			else return EXIT_FAILURE;
+			else 
+				return EXIT_FAILURE;   //  error reading input
 		}
 
 		if (!test) {
@@ -2550,8 +2712,13 @@ int main(int argc, char* argv[]) {
 			while (toupper(yn) != 'Y' && toupper(yn) != 'N') {
 				std::cout << "Detailed explanation required? (Y/N): ";
 				std::cin >> yn;
-				teach = (toupper(yn) == 'Y');
+				if (std::cin.good()) {
+					teach = (toupper(yn) == 'Y');
+				}
+				else
+					return EXIT_FAILURE;   //  error reading input
 			}
+
 			solveEquation(a, b, c, d, e, f);
 			system("PAUSE");   // press any key to continue
 			return EXIT_SUCCESS;
@@ -2562,7 +2729,11 @@ int main(int argc, char* argv[]) {
 			while (toupper(yn) != 'Y' && toupper(yn) != 'N') {
 				std::cout << "Detailed explanation required? (Y/N): ";
 				std::cin >> yn;
-				teach = (toupper(yn) == 'Y');
+				if (std::cin.good()) {
+					teach = (toupper(yn) == 'Y');
+				}
+				else
+					return EXIT_FAILURE;   //  error reading input
 			}
 
 			printf("Run standard tests\n");
@@ -2697,6 +2868,31 @@ int main(int argc, char* argv[]) {
 			set 1: x = -174t^2 - 17t - 2, y = -116t^2 - 21t - 2
 			set 2: x = -174t^2 - 41t - 4, y = -116t^2 - 37t - 4
 			*/
+			solveEquation(a, b, c, d, e, f);
+
+			teach = false;
+			printf("\n test using large pseudo-random numbers as coefficients\n");
+			a = random64();    
+			a >>= 48;            // note that in Visual Studio an arithmetic right shift is used
+			b = random64();    
+			b >>= 48; 
+			c = random64();    
+			c >>= 48;
+			d = random64();    
+			d >>= 48;
+			e = random64();    
+			e >>= 48;
+			f = 0;              // this  ensures that there is at least 1 solution; x=y=0
+			solveEquation(a, b, c, d, e, f);
+
+			printf("\n 2nd test using large pseudo-random numbers as coefficients\n");
+
+			a = random64();    a >>= 48;
+			b = random64();    b >>= 48; 
+			c = random64();    c >>= 48;  c = -c;
+			d = random64();    d >>= 48;
+			e = random64();    e >>= 48;
+			f = 0;               // this  ensures that there is at least 1 solution; x=y=0
 			solveEquation(a, b, c, d, e, f);
 
 			// code to find values for hyperbolic eqn where N0=0

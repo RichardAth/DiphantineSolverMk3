@@ -56,6 +56,7 @@ void ShowBigEq(const mpz_int &Dp_A, const mpz_int &Dp_B, const mpz_int &Dp_C,
 	const std::string &x, const std::string &y);
 void GetRoot(const mpz_int &Dp_A, const mpz_int &Dp_B, const mpz_int &Dp_C, mpz_int *Disc);
 //int Compare(const mpz_int Bi_array, const mpz_int Bi_K1);
+void adjustGandK(long long &G, long long &K);
 
 /* enumerated variable used to classify type of equation */
 enum equation_class {

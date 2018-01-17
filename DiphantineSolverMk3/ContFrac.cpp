@@ -1,6 +1,7 @@
 #define _CRTDBG_MAP_ALLOC  
 #include <stdlib.h>  
 #include <crtdbg.h> 
+#include <safeint.h>
 #include "stdafx.h"
 
 // get access to the mpz_t inside  mpz_int a
@@ -15,6 +16,9 @@ extern mpz_int g_CY1, g_CY0;     // used by ShowHomoSols & ContFrac
 extern mpz_int g_A2, g_B2;       // note: g_A2, g_B2 set by ContFrac, used in SolveEquation
 extern int NbrSols, NbrCo;
 extern bool teach;
+extern unsigned long long *primeList;
+extern unsigned int prime_list_count;
+extern unsigned long long int primeListMax;
 
 int NbrEqs, EqNbr;
 mpz_int Bi_L1, Bi_L2;      // values placed here by ShowHomoSols, used by SolContFrac
@@ -579,13 +583,16 @@ bool ContFrac(const mpz_int &Dp_A, int type, const int SqrtSign, long long s, co
 			}
 
 			Count++;
-			if (Count % 5000 == 0) {
-				std::cout << "Conv: " << Count << " (Eq " << EqNbr << " of " << NbrEqs << ") \n";
-				std::cout << NbrSols << " solution" << (NbrSols == 1 ? "\n" : "s\n");
+			if (Count % 10000 == 0) {
+				std::cout << "Confrac: " << Count << " (Eq " << EqNbr << " of " << NbrEqs << ") ";
+				if (NbrSols > 0)
+					std::cout << NbrSols << " solution" ;
+				std::cout << (NbrSols <= 1 ? "\n" : "s\n");
+
 			}
-			if (Count % 5000 == 2500) {
+	/*		if (Count % 5000 == 2500) {
 				std::cout << NbrSols << " solution" << (NbrSols == 1 ? "\n" : "s\n");
-			}
+			}*/
 
 			M = M1;
 			P = P1;
@@ -665,10 +672,8 @@ void SolContFrac(const mpz_int &H, long long T, mpz_int A, const long long B, mp
 	long long Dif[64] = { 0 };   /* Holds difference */
 	long long mod[64] = { 0 };
 	long long pos[64] = { 0 };
-	long long Tmp, q, s, t, v, Pp, dif, Sol1, Sol2, Modulo;
-	long long SqrtDiscCopy = SqrtDisc;
+	long long SqrtDiscCopy = SqrtDisc, Modulo, dif, Pp, q, s, t, v, Sol1, Sol2;
 	mpz_int NUMcopy, DENcopy, ValF, F, BiTmp;
-
 	mpz_int Disc;
 	long long VarD, VarK, VarQ, VarR, VarV, VarW, VarX, VarY, VarY1;
 	mpz_int gcdAF, Dp_A, Dp_B, Dp_C, Dp_R, Dp_S, Dp_T, MagnifY;
@@ -742,37 +747,23 @@ void SolContFrac(const mpz_int &H, long long T, mpz_int A, const long long B, mp
 				ShowEq(A, B, C, 0, 0, F, "x", "y'");
 				printf(" = 0\n");
 			}
-			/* Find factors of F, store in array factors */
+			/* Find factors of F, store in array factor */
 			NbrFactors = 0;
-			BiTmp = ValF;
+			BiTmp = ValF;       // copy F to temp variable
 			if (BiTmp == 1) {
 				factor[NbrFactors++] = 1;
 			}
 			else {
-				while ((BiTmp % 2) == 0) {
-					factor[NbrFactors++] = 2;
-					assert(NbrFactors < sizeof(factor) / sizeof(factor[0]));
-					BiTmp /= 2;
-				}
-				while ((BiTmp % 3) == 0) {
-					factor[NbrFactors++] = 3;
-					assert(NbrFactors < sizeof(factor) / sizeof(factor[0]));
-					BiTmp /= 3;
-				}
-				s = 5;        /* Sequence of divisors 5, 7, 11, 13, 17, 19,... */
+				size_t i = 0;    // index into prime list array
+				s = primeList[i];
 				do {
 					while ((BiTmp%s) == 0) {
 						factor[NbrFactors++] = s;
 						assert(NbrFactors < sizeof(factor) / sizeof(factor[0]));
 						BiTmp /= s;
 					}
-					s += 2;
-					while ((BiTmp%s) == 0) {
-						factor[NbrFactors++] = s;
-						assert(NbrFactors < sizeof(factor) / sizeof(factor[0]));
-						BiTmp /= s;
-					}
-					s += 4;
+					i++;            // get next prime from list
+					s = primeList[i];
 				} while (s*s <= BiTmp);
 
 				if (BiTmp != 1) {
@@ -781,12 +772,13 @@ void SolContFrac(const mpz_int &H, long long T, mpz_int A, const long long B, mp
 			}
 			/* complete list of prime factors of F now in array factor */
 
-			mod[NbrFactors] = Tmp = 1;
+			mod[NbrFactors] = 1;
+			BiTmp = 1;
 			Pp = MulPrToLong((2 * ValA) % ValF);
 			for (index = NbrFactors - 1; ; index--) {
 				P[index] = Pp;
-				Tmp *= factor[index];
-				mod[index] = Tmp;
+				BiTmp *= factor[index];
+				mod[index] = MulPrToLong(BiTmp);
 				Pp = MultMod(MultMod(Pp, factor[index], MulPrToLong(ValF)),
 					factor[index], MulPrToLong(ValF));
 				if (index == 0) 
@@ -1142,7 +1134,7 @@ void SolContFrac(const mpz_int &H, long long T, mpz_int A, const long long B, mp
 			if (teach) {
 				putchar('\n');
 			}
-			SqrtDisc = SqrtDiscCopy;  // restore original values zpped by GetRoot
+			SqrtDisc = SqrtDiscCopy;  // restore original values zapped by GetRoot
 			Bi_NUM  = NUMcopy;        
 			Bi_DEN  = DENcopy;  
 			//std::cout << "**temp SolContFrac(9)\n";
