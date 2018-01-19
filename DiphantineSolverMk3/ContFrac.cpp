@@ -763,6 +763,10 @@ void SolContFrac(const mpz_int &H, long long T, mpz_int A, const long long B, mp
 						BiTmp /= s;
 					}
 					i++;            // get next prime from list
+					if (i >= prime_list_count) {
+						std::cerr << "Cannot factorise " << BiTmp << ". Try increasing max_prime \n";
+						throw std::invalid_argument("Number too large to factorise");
+					}
 					s = primeList[i];
 				} while (s*s <= BiTmp);
 

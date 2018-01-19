@@ -65,6 +65,7 @@ uint32_t *primeFlags = NULL; /* 1 bit for each odd number, 1 = not prime, 0 = pr
 unsigned long long *primeList = NULL;
 unsigned int prime_list_count = 0;
 unsigned long long int primeListMax = 0;
+unsigned long long int max_prime = 100000000;  // arbitrary limit,
 
 void listLargeSolutions();
 
@@ -675,6 +676,10 @@ bool CheckMod(long long R, long long S, long long X2, long long X1, long long X0
 			D1 /= fact;      // remove factor
 		}
 		i++;
+		if (i >= prime_list_count) {
+			std::cerr << "Cannot factorise " << D1 << ". Try increasing max_prime \n";
+			throw std::invalid_argument("Number too large to factorise");
+		}
 		fact = primeList[i];
 	}
 
@@ -2167,32 +2172,33 @@ void generatePrimes(unsigned long long int max_val) {
 	return;  // return value is used for problem 10
 }
 
-/* remove any double factors from G, add same factor to to K 
-The two versions are functionally the same but G has different types. 
-This function, using a prime number list, was added to speed things up. */
+/* remove any double factors from G, add same factor to to K. The two versions 
+are functionally the same but G has different types. This function, using a prime 
+number list, was added to speed things up. If G is too large, we still have a 
+problem. This method using a list of prime numbers is simple, but gets too slow 
+for very large numbers. */
 void adjustGandK(mpz_int &G, long long &K) {
 	long long T;
 	size_t i = 0;
 	K = 1;
-	assert(G <= primeListMax*primeListMax);  /* if G is too large, we have a 
-		problem. Factorising large numbers is very slow. This method using a 
-		list of prime numbers is simple, but gets too slow for large numbers. */
-
-	/* remove any double factors from G, add same factor to to K*/
+  	/* remove any double factors from G, add same factor to to K*/
 	T = primeList[i];
 	while (abs(G) >= T*T) {     // remove factor T
 		while (G % (T*T) == 0) {
 			G /= T*T; K *= T;
 		}
 		i++;
-		T = primeList[i]; ;    // advance to next odd number
+		if (i >= prime_list_count) {
+			std::cerr << "Cannot factorise " << G << ". Try increasing max_prime \n";
+			throw std::invalid_argument("Number too large to factorise");
+		}
+		T = primeList[i];     // advance to next prime
 	}
 }
 void adjustGandK(long long &G, long long &K) {
 	long long T;
 	size_t i = 0;
 	K = 1;
-	assert(G <= primeListMax*primeListMax);
 	/* remove any double factors from G, add same factor to to K*/
 	T = primeList[i];
 	while (abs(G) >= T*T) {     // remove factor T
@@ -2200,7 +2206,11 @@ void adjustGandK(long long &G, long long &K) {
 			G /= T*T; K *= T;
 		}
 		i++;
-		T = primeList[i]; ;    // advance to next odd number
+		if (i >= prime_list_count) {
+			std::cerr << "Cannot factorise " << G << ". Try increasing max_prime \n";
+			throw std::invalid_argument("Number too large to factorise");
+		}
+		T = primeList[i];     // advance to next odd number
 	}
 }
 
@@ -2582,7 +2592,7 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 		if (((g_C*g_D*(G - 2) + g_E*(g_B - H)) % Bi_Disc != 0 ||
 			(g_D*(g_B - H) + g_A*g_E*(G - 2)) % Bi_Disc != 0) && ((g_C*g_D*(-G - 2) + g_E*(g_B + H)) % Bi_Disc != 0 ||
 			(g_D*(g_B + H) + g_A*g_E*(-G - 2)) % Bi_Disc != 0)) {
-			NbrCo *= 2;
+			NbrCo *= 2;    
 			//std::cout << "**temp SolveEquation  NbrCo=" << NbrCo << "\n";
 		}
 
@@ -2686,7 +2696,11 @@ int main(int argc, char* argv[]) {
 		char yn = '\0';
 		bool test = false;
 		std::cout << "Compiled on " << __DATE__ " at " __TIME__ "\n";
-		generatePrimes(1LL << 30);
+
+		/* now generate the prime list used to factorise numbers. If max_prime  
+		is too small the program will fail, but there has to be a limit. */
+		//max_prime = 100000000;  // increase if necessary
+		generatePrimes(max_prime);
 		while (toupper(yn) != 'Y' && toupper(yn) != 'N') {
 			std::cout << "Enter own data (Y/N)? (N = run standard tests) : ";
 			std::cin >> yn;
