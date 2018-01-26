@@ -56,8 +56,9 @@ void NextConv(mpz_int *Bi_Prev, mpz_int *Bi_Act, const mpz_int &A1,
 
 /* uses global variables Bi_L1, Bi_L2, g_A, g_B, g_D, g_CY0, g_CY1
 values are returned in Bi_L1 and Bi_L2*/
-bool ShowHomoSols(const int type, const mpz_int &Bi_SHH, const mpz_int &Bi_SHK, long long s, const mpz_int &T,
-	const mpz_int &MagnifY, const std::string &eqX, const std::string &eqY, const mpz_int &F) {
+bool ShowHomoSols(const int type, const mpz_int &Bi_SHH, const mpz_int &Bi_SHK, 
+	const long long s, const mpz_int &T, const mpz_int &MagnifY, const std::string &eqX, 
+	const std::string &eqY, const mpz_int &F) {
 
 	assert(_CrtCheckMemory());
 
@@ -102,7 +103,7 @@ bool ShowHomoSols(const int type, const mpz_int &Bi_SHH, const mpz_int &Bi_SHK, 
 				ShowLin(0, i == 0 ? 1 : -1, -g_CY0, "", Y1 + "0");
 				std::cout << ")/" << par(g_CY1) << "\n";
 			}
-			if (tDivLargeNumber(Bi_L2, g_CY1, &Bi_L2) != 0) {
+			if (tDivLargeNumber(Bi_L2, g_CY1, Bi_L2) != 0) {
 				//std::cout << "**temp ShowHomoSols(3) Bi_L2=" << Bi_L2 << "\n";
 				if (teach) {
 					printf("It is not an integer number. \n");
@@ -119,7 +120,7 @@ bool ShowHomoSols(const int type, const mpz_int &Bi_SHH, const mpz_int &Bi_SHK, 
 				//MultAddLargeNumbers(1, Bi_L1, -g_B, Bi_L2, &Bi_L1);  // store result in L1
 				Bi_L1 -=  g_B* Bi_L2;
 				//std::cout << "**temp ShowHomoSols(5) Bi_L1=" << Bi_L1 << "\n";
-				if (tDivLargeNumber(Bi_L1, 2 * g_A, &Bi_L1) != 0) {
+				if (tDivLargeNumber(Bi_L1, 2 * g_A, Bi_L1) != 0) {
 					//std::cout << "**temp ShowHomoSols(6) Bi_L1=" << Bi_L1 << "\n";
 					if (teach) {
 						printf("It is not an integer number. \n");
@@ -184,11 +185,11 @@ bool ShowHomoSols(const int type, const mpz_int &Bi_SHH, const mpz_int &Bi_SHK, 
 * type = 4: Find convergents for modified equation in complete solution    *
 * type = 5: Find convergents for x^2 + Bxy + ACy^2 = 1 (mod B^2-4AC)       *
 * returns true if there are solutions, otherwise false                     *
-* uses global variables Bi_NUM, Bi_DEN, Bi_H1, Bi_H2, Bi_K1, Bi_K2, NbrCo  *
+* uses global variables Bi_NUM, Bi_DEN, Bi_H1, Bi_H2, Bi_K2, NbrCo         *
 *     NbrEqs, Eqnbr, NbrSols, g_A2, g_B2, g_CY0, g_CY1, SqrtDisc           *
 ****************************************************************************/
-bool ContFrac(const mpz_int &Dp_A, int type, const int SqrtSign, long long s, const mpz_int &T,
-	mpz_int MagnifY, mpz_int A, const mpz_int &Disc, const mpz_int &F) {
+bool ContFrac(const mpz_int &Dp_A, int type, const int SqrtSign, const long long s, 
+	const mpz_int &T, mpz_int MagnifY, mpz_int A, const mpz_int &Disc, const mpz_int &F) {
 
 	/*std::cout << "**temp ContFrac: type=" << type << "  SqrtSign=" << SqrtSign << "  s=" << s;
 	std::cout << "  T=" << T << "  MagnifY=" << MagnifY << "  A=" << A << "\n";
@@ -250,7 +251,7 @@ bool ContFrac(const mpz_int &Dp_A, int type, const int SqrtSign, long long s, co
 		}
 
 		//std::cout << "  Bi_DEN=" << Bi_DEN;
-		Z = DivLargeNumberLL(Dp_K, Dp_P);           // Z = K/P
+		Z = DivLargeNumberLL(Dp_K, Dp_P);           // Z = K/P (floor division)
 		//std::cout << "  Dp_K=" << Dp_K << "  Dp_P=" << Dp_P << "\n";
 		Dp_M = Z;       // M = Z (=K/P)
 		Dp_K = Dp_M * Bi_DEN;   // K = M*DEN
@@ -271,7 +272,7 @@ bool ContFrac(const mpz_int &Dp_A, int type, const int SqrtSign, long long s, co
 		/* type = 5: Find convergents for x^2 + Bxy + ACy^2 = 1 (mod B^2-4AC) */
 		if (type == 5) {
 			A1 = g_B2 = 1;
-			g_A2 = Z%T;
+			g_A2 = Z % T;
 			B1 = 0;
 		}
 		else {
@@ -417,7 +418,7 @@ bool ContFrac(const mpz_int &Dp_A, int type, const int SqrtSign, long long s, co
 								break;
 							}
 						}
-						else {
+						else {   // Paso != 2
 							mpz_int Tmp;
 							if (type == 4) {
 								Tmp = H2ModCY1*T;
@@ -428,7 +429,7 @@ bool ContFrac(const mpz_int &Dp_A, int type, const int SqrtSign, long long s, co
 									break;
 								}
 							}
-							else {
+							else {  // type != 4
 								secondDo = false;
 								Sols = true;
 								//std::cout << "**temp ContFrac(10)\n";
@@ -711,7 +712,7 @@ void SolContFrac(const mpz_int &H, long long T, mpz_int A, const long long B, mp
 		VL = "y" + SCFstr;
 		FP = "f" + SCFstr;
 	}
-	gcd(A, F, &gcdAF);
+	gcd(A, F, gcdAF);
 	OrigA = A;
 	OrigC = C;
 	if (teach && gcdAF > 1) {
@@ -1023,8 +1024,8 @@ void SolContFrac(const mpz_int &H, long long T, mpz_int A, const long long B, mp
 							Dp_B += Dp_C;             // Dp_B = 2As+B
 							Dp_C = Dp_R * A;          // Dp_C = -AF
 
-							gcd(Dp_A, Dp_B, &Dp_T);   // Dp_T = gcd(Dp_A, Dp_B)
-							gcd(Dp_T, Dp_C, &Dp_R);   // Dp_R = gcd(Dp_A, Dp_B, Dp_C)
+							gcd(Dp_A, Dp_B, Dp_T);   // Dp_T = gcd(Dp_A, Dp_B)
+							gcd(Dp_T, Dp_C, Dp_R);   // Dp_R = gcd(Dp_A, Dp_B, Dp_C)
 							/* temporary */
 							/*std::cout << "**temp SolContFrac  Dp_A=" << Dp_A << "  Dp_B=" << Dp_B;
 							std::cout << "  Dp_C=" << Dp_C << "   DP_R=" << Dp_R << "\n";*/

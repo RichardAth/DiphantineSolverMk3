@@ -23,11 +23,11 @@ bool ShowHomoSols(const int type, const mpz_int &H1, const mpz_int &K1, long lon
 	const mpz_int &MagnifY, const std::string &eqX, const std::string &eqY, const mpz_int &F);
 void ShowLargeNumber(const mpz_int &Bi_Nbr);
 long long DivLargeNumberRem(const mpz_int &Bi_Nbr, long long Coef, mpz_int *Bi_Dest);
-long long tDivLargeNumber(const mpz_int &n, mpz_int d, mpz_int *q);
+long long tDivLargeNumber(const mpz_int &n, const mpz_int &d, mpz_int &q);
 long long MulPrToLong(const mpz_int &x);
 long long DivLargeNumberLL(const mpz_int &Dp_Dividend, const mpz_int &Dp_Divisor);
 void DivLargeNumber(const mpz_int &Dp_Dividend, const mpz_int &Dp_Divisor, mpz_int *Dp_Quotient);
-void gcd(const mpz_int &Dp_Nbr1, const mpz_int &Dp_Nbr2, mpz_int *Dp_Gcd);
+void gcd(const mpz_int &Dp_Nbr1, const mpz_int &Dp_Nbr2, mpz_int &Dp_Gcd);
 long long gcd(long long M, long long N);    // same name, does same job, but for normal integers
 std::string numToStr(const mpz_int &Dp_Nbr);
 std::string numToStr(long long num);        // same name, does same job, but for normal integers
