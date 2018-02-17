@@ -997,7 +997,7 @@ int Comparev(const void * Bi_array, const mpz_t &Bi_K1) {
 	return mpz_cmp(tempZ, Bi_K1);
 }
 
-Functions /* class used to store solutions to equation. Operator < is overloaded so that 
+/* class used to store solutions to equation. Operator < is overloaded so that 
 STL functions can handle this class without defining a special compare function. */
 class solution {
 public:
