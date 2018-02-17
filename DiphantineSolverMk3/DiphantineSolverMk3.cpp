@@ -5,6 +5,7 @@
 
 #include "stdafx.h"
 #include <windows.h> 
+#include <set>
 //#define temp 1
 
 // Diophantine Quadratic Equation Solver
@@ -56,10 +57,10 @@ int NbrSols = 0, NbrCo;
 int digitsInGroup = 6;     // used in ShowLargeNumber
 
 /* typedef for vector-type arrays */
-typedef  std::vector <void *> ArrayLongs;
+//typedef  std::vector <void *> ArrayLongs;
 
-ArrayLongs sortedSolsXv;
-ArrayLongs sortedSolsYv;
+//ArrayLongs sortedSolsXv;
+//ArrayLongs sortedSolsYv;
 
 uint32_t *primeFlags = NULL; /* 1 bit for each odd number, 1 = not prime, 0 = prime */
 unsigned long long *primeList = NULL;
@@ -67,7 +68,7 @@ unsigned int prime_list_count = 0;
 unsigned long long int primeListMax = 0;
 unsigned long long int max_prime = 100000000;  // arbitrary limit,
 
-void listLargeSolutions();
+//void listLargeSolutions();
 
 /* print a string variable. This is a relic from the original java program */
 //void w(std::string texto) {
@@ -756,6 +757,7 @@ void ShowBigEq(const mpz_int &Dp_A, const mpz_int &Dp_B, const mpz_int &Dp_C,
 /* convert biginteger to normal. Checks for overflow */
 long long MulPrToLong(const mpz_int &x) {
 	long long rv;
+	// note: do not use mpz_fits_slong_p because it checks whether x fits a 32 bit integer, rather than a 64 bit integer.
 	if (x >= LLONG_MIN && x <= LLONG_MAX) { // is x value OK for normal integer?
 		rv = mpz_get_si(ZT(x)); // convert to normal integer
 		return rv;
@@ -995,72 +997,45 @@ int Comparev(const void * Bi_array, const mpz_t &Bi_K1) {
 	return mpz_cmp(tempZ, Bi_K1);
 }
 
-/* Insert new number into sorted solutions vector                             */
-/* performing a binary search                                                 */
-/* called from ShowLargeXY                                                    */
-/* Note: an mpz_t is in fact a structure which is not a type that is supported
-by the std::vector STL so the mpz_t structures and the values they contain are
-are copied from the stack to  blocks in the heap and the vectors contain pointers
-to the copies on the heap. */
-void InsertNewSolution(const mpz_int &Bi_x, const mpz_int &Bi_y) {
-	ptrdiff_t indexVector = 0, compare;
-	size_t sizeVector = 0, increment;
-	/* temporary  */
-	//gmp_printf("\n**temp InsertNewSolution X = %Zd  Y = %Zd\n", ZT(Bi_x), ZT(Bi_y));  
-	/* end temporary */
-
-	sizeVector = sortedSolsYv.size();
-	if (sizeVector > 0) {  // is there already something in the list?
-		increment = 1;
-		while (increment * 2 <= sizeVector) {
-			increment *= 2;
-		}
-		while (increment > 0) {  /* Perform binary search */
-			if (indexVector + increment <= sizeVector) {
-				compare = Comparev(sortedSolsXv.at(indexVector + increment - 1), ZT(Bi_x));
-				if (compare == 0) {
-					compare = Comparev(sortedSolsYv.at(indexVector + increment - 1), ZT(Bi_y));
-				}
-				if (compare == 0) {
-					/* temporary  */
-					/*printf("** duplicate solution discarded: X = ");
-					ShowLargeNumber(Bi_x);
-					printf("  Y = ");
-					ShowLargeNumber(Bi_y);
-					putchar('\n');*/
-					/* end temporary */
-					return;  // if solution already in list don't add it again
-				}
-				if (compare < 0) {
-					indexVector += increment;
-				}
-			}
-			increment /= 2;
-		}
+Functions /* class used to store solutions to equation. Operator < is overloaded so that 
+STL functions can handle this class without defining a special compare function. */
+class solution {
+public:
+	mpz_int x, y;
+	bool operator < (const solution &p) const {
+		if (x == p.x)
+			return y < p.y;
+		else
+			return x < p.x;
 	}
+	bool operator > (const solution &p) const {
+		if (x == p.x)
+			return y > p.y;
+		else
+			return x > p.x;
+	}
+	bool operator == (const solution &p) const {
+		return (x == p.x) && (y == p.y);
+	}
+};
 
-	mpz_t H1, K1;             // copy the values. The structure itself
-	mpz_init_set(H1, ZT(Bi_x));  // is copied to a stack variable. the value is copied to
-	mpz_init_set(K1, ZT(Bi_y));  // a new block from the heap
+/* set used to store solutions. Arguably overkill for this use, but it has the
+ convenient property that duplicate solutions are detected automatically */
+std::set <solution> SortedSols;
 
+/* Insert new number into sorted solutions set.  Duplicate solutions are not *
+*  saved. Called from ShowLargeXY                                            */
+void InsertNewSolution2(const mpz_int &Bi_x, const mpz_int &Bi_y) {
+	solution newval;
 
-	void *Hcopy, *Kcopy;
-	Hcopy = malloc(sizeof(mpz_t));
-	assert(Hcopy != NULL);
-	Kcopy = malloc(sizeof(mpz_t));
-	assert(Kcopy != NULL);
-	memcpy(Hcopy, H1, sizeof(mpz_t));  // copy the mpz_t structures to a heap area
-	memcpy(Kcopy, K1, sizeof(mpz_t));
-
-	NbrSols++;
-	//cout << "**temp InsertNewSolution NbrSols =" << NbrSols << "\n";
-	ArrayLongs::iterator itX = sortedSolsXv.begin() + indexVector;
-	ArrayLongs::iterator itY = sortedSolsYv.begin() + indexVector;
-	sortedSolsXv.insert(itX, Hcopy);
-	sortedSolsYv.insert(itY, Kcopy);
-	//listLargeSolutions();    // temporary
-	assert(_CrtCheckMemory());   // check for heap corruption
+	newval.x = Bi_x;
+	newval.y = Bi_y;
+	/* note that insert keeps the solutions in ascending order and does not 
+	store duplicates. */
+	if (SortedSols.insert(newval).second)
+		NbrSols++;  // increment counter unless the solution is a duplicate.
 }
+
 
 /* convert num to digits, in brackets if -ve */
 std::string par(long long num) {
@@ -1101,25 +1076,20 @@ void ShowLargeXY(const std::string &x, const std::string &y, const mpz_int &Bi_X
 			also = true;
 			/* store solutions in sorted solutions vector and exit*/
 			if (sol && (Bi_Y == 0)) {
-				InsertNewSolution(Bi_X, Bi_Y);
-				//ChangeSign(&Bi_X);
-				InsertNewSolution(-Bi_X, Bi_Y);
-				//ChangeSign(&Bi_X);
+				InsertNewSolution2(Bi_X, Bi_Y);
+				InsertNewSolution2(-Bi_X, Bi_Y);
 			}
 			else {
 				if (sol && (Bi_Y < 0)) {
-					//ChangeSign(&Bi_X);
-					//ChangeSign(&Bi_Y);
-					InsertNewSolution(-Bi_X, -Bi_Y);
-					//ChangeSign(&Bi_X);
-					//ChangeSign(&Bi_Y);
+					InsertNewSolution2(-Bi_X, -Bi_Y);
 				}
 				else {
-					InsertNewSolution(Bi_X, Bi_Y);
+					/* sol is false and/or Bi_Y > 0 */
+					InsertNewSolution2(Bi_X, Bi_Y);
 				}
 			}
-			if (!allSolsFound)
-				std::cout << NbrSols << " solutions \n";
+			//if (!allSolsFound)
+			std::cout << NbrSols << " solutions \n";
 			return;
 		}
 	}
@@ -1144,68 +1114,41 @@ void ShowLargeXY(const std::string &x, const std::string &y, const mpz_int &Bi_X
 
 	if (y == "Y" && sol) {
 		/* show -ve of solution as well */
-		//ChangeSign(&Bi_X);
-		//ChangeSign(&Bi_Y);
 		std::cout << "\n  and also:  " << x << "0 = ";
 		if (teach && eqX.length() >0) {
-			//w(eqX == "" ? "" : "-" + eqX);
 			std::cout << "-" << eqX;
 		}
 		ShowLargeNumber(-Bi_X);
 		std::cout << "\n" << y << "0 = ";
 		if (teach && eqY.length() >0) {
-			//w(eqY == "" ? "" : "-" + eqY);
 			std::cout << "-" << eqY;
 		}
 		ShowLargeNumber(-Bi_Y);
 		putchar('\n');
-		//ChangeSign(&Bi_X);
-		//ChangeSign(&Bi_Y);
-	}
-	if (teach && y == "Y") {
-		//w("</B>");
 	}
 }
 
-/* show all solutions stored in sorted solutions vector, stored by
+
+/* show all solutions stored in sorted solutions set, stored by
 InsertNewSolution function.
-Note that solutions are deleted after they are printed, making the vector
+Note that solutions are deleted after they are printed, making the set
 ready for reuse, but this function can only be called once. */
-void ShowAllLargeSolutions() {
-	size_t i;
-	mpz_t xtemp, ytemp;    // note these are NOT initialised by mpz_set
-	allSolsFound = true;
-	also = false;
-
-	for (i = 0; i < sortedSolsYv.size(); i++) {
-		memcpy(xtemp, sortedSolsXv.at(i), sizeof(mpz_t));
-		memcpy(ytemp, sortedSolsYv.at(i), sizeof(mpz_t));
-		std::cout << "X= ";     ShowLargeNumber(xtemp);
-		std::cout << "  \tY= "; ShowLargeNumber(ytemp);  // tab makes output a bit more tidy
+void  ShowAllLargeSolutions2() {
+	for (auto sol : SortedSols) {
+		std::cout << "X= ";     ShowLargeNumber(sol.x);
+		std::cout << "  \tY= "; ShowLargeNumber(sol.y);  // tab makes output a bit more tidy
 		std::cout << "\n";
-
-		mpz_clear(xtemp);  // avoid memory leakage
-		mpz_clear(ytemp);
-		free(sortedSolsXv[i]);
-		free(sortedSolsYv[i]);
 	}
-	sortedSolsXv.clear();		// clear vectors to initial state.
-	sortedSolsXv.shrink_to_fit();   // avoid spurious memory leakage report
-	sortedSolsYv.clear();
-	sortedSolsYv.shrink_to_fit();
-	assert(_CrtCheckMemory());     // check for heap corruption
+	SortedSols.clear();
 }
 
 
 /* quick print of sortedSols - for testing */
 void listLargeSolutions() {
-	long long  i;
-	long long sizeVector = sortedSolsYv.size();
-	mpz_t xtemp, ytemp;
-	for (i = 0; i < sizeVector; i++) {
-		memcpy(xtemp, sortedSolsXv.at(i), sizeof(mpz_t));
-		memcpy(ytemp, sortedSolsYv.at(i), sizeof(mpz_t));
-		gmp_printf("X= %Zd, Y= %Zd \n", xtemp, ytemp);
+	for (auto sol : SortedSols) {
+		std::cout << "X= ";     ShowLargeNumber(sol.x);
+		std::cout << "  \tY= "; ShowLargeNumber(sol.y);  // tab makes output a bit more tidy
+		std::cout << "\n";
 	}
 }
 
@@ -2173,7 +2116,7 @@ void generatePrimes(unsigned long long int max_val) {
 	primeListMax = primeList[count - 1];
 	return;  // return value is used for problem 10
 }
-
+gmp_randstate_t state;
 /* remove any double factors from G, add same factor to to K. The two versions 
 are functionally the same but G has different types. This function, using a prime 
 number list, was added to speed things up. If G is too large, we still have a 
@@ -2191,8 +2134,12 @@ void adjustGandK(mpz_int &G, long long &K) {
 		}
 		i++;
 		if (i >= prime_list_count) {
-			std::cerr << "Cannot factorise " << G << ". Try increasing max_prime \n";
-			throw std::invalid_argument("Number too large to factorise");
+			if (!mpz_probable_prime_p(ZT(G), state, 10, primeListMax)) {
+				std::cerr << "Cannot factorise " << G << ". Try increasing max_prime \n";
+				throw std::invalid_argument("Number too large to factorise");
+			}
+			else
+				break;
 		}
 		T = primeList[i];     // advance to next prime
 	}
@@ -2361,6 +2308,7 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 	NbrSols = 0;
 	NbrCo = -1;
 	also = false;
+	gmp_randinit_default(state);  // seed random number generator
 
 	std::cout << "\nSolve Diophantine equation:   ";
 	ShowEq(ax2, bxy, cy2, dx, ey, f, "x", "y");
@@ -2445,7 +2393,7 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 				putchar('\n');
 			}
 			else {
-				ShowAllLargeSolutions();
+				ShowAllLargeSolutions2();
 				printf("If (x,y) is a solution, (-x,-y) is also a solution.\n");
 			}
 			ShowRecursion(eqnType);
@@ -2623,7 +2571,7 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 		if (also) {
 			/* solutions found */
 			if (!teach) {
-				ShowAllLargeSolutions();
+				ShowAllLargeSolutions2();
 			}
 			ShowRecursion(eqnType);
 		}
@@ -2722,7 +2670,7 @@ int main(int argc, char* argv[]) {
 			e = getnumber("Enter value for E ");
 			f = getnumber("Enter value for F ");
 			//std::cout << "solve " << a << "x² + " << t << "xy + " << cy2 << "y² + " << dx << "x + " << ey << "y + " << f << " = 0" << endl;
-			printf("solve %lldx^2 + %lldxy + %lldy^2 + %lldx + %lldy + %lld = 0\n", a, b, c, d, e, f);
+			wprintf(L"solve %lldx^2 + %lldxy + %lldy^2 + %lldx + %lldy + %lld = 0\n", a, b, c, d, e, f);
 
 			yn = '\0';
 			while (toupper(yn) != 'Y' && toupper(yn) != 'N') {
@@ -2888,16 +2836,11 @@ int main(int argc, char* argv[]) {
 
 			teach = false;
 			printf("\n test using large pseudo-random numbers as coefficients\n");
-			a = random64();    
-			a >>= 48;            // note that in Visual Studio an arithmetic right shift is used
-			b = random64();    
-			b >>= 48; 
-			c = random64();    
-			c >>= 48;
-			d = random64();    
-			d >>= 48;
-			e = random64();    
-			e >>= 48;
+			a = random64();    a >>= 48;    // note that in Visual Studio an arithmetic right shift is used
+			b = random64();    b >>= 48; 
+			c = random64();    c >>= 48;
+			d = random64();    d >>= 48;
+			e = random64();    e >>= 48;
 			f = 0;              // this  ensures that there is at least 1 solution; x=y=0
 			solveEquation(a, b, c, d, e, f);
 
@@ -2920,6 +2863,18 @@ int main(int argc, char* argv[]) {
 			d = random64();    d >>= 48;
 			e = random64();    e >>= 16;
 			f = 0;               // this  ensures that there is at least 1 solution; x=y=0
+			solveEquation(a, b, c, d, e, f);
+
+
+			printf("\n 4th test using large pseudo-random numbers as coefficients\n");
+			teach = false;
+			a = random64();    a >>= 47; 
+			b = random64();    b >>= 47;
+			c = random64();    c >>= 47;
+			d = random64();    d >>= 47;
+			e = random64();    e >>= 47;
+			f = 0;               // this  ensures that there is at least 1 solution; x=y=0
+
 			solveEquation(a, b, c, d, e, f);
 
 
