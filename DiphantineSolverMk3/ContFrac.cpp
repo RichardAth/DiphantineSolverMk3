@@ -60,8 +60,6 @@ bool ShowHomoSols(const int type, const mpz_int &Bi_SHH, const mpz_int &Bi_SHK,
 	const long long s, const mpz_int &T, const mpz_int &MagnifY, const std::string &eqX, 
 	const std::string &eqY, const mpz_int &F) {
 
-	assert(_CrtCheckMemory());
-
 	/*std::cout << "**temp ShowHomoSols: s=" << s << "  T=" << T << "  MagnifY=" << MagnifY << "\n";
 	std::cout << "Bi_SHH=" << Bi_SHH;
 	std::cout << "  Bi_SHK=" << Bi_SHK << "\n";
@@ -205,8 +203,6 @@ bool ContFrac(const mpz_int &Dp_A, int type, const int SqrtSign, const long long
 	std::string U = (type == 4 ? "'" : "");
 	std::string X1 = "X";
 	std::string Y1 = (MagnifY == 1 ? "Y" : "Y'");
-
-	assert(_CrtCheckMemory());
 
 	if (Dp_A == 1) {
 		/* Dp_A = 1 */
@@ -648,7 +644,6 @@ bool ContFrac(const mpz_int &Dp_A, int type, const int SqrtSign, const long long
 	}                        /* end for */
 
 	//std::cout << "**temp ContFrac returns " << Sols << "\n";
-	assert(_CrtCheckMemory());
 	return Sols;
 }
 
@@ -985,7 +980,6 @@ void SolContFrac(const mpz_int &H, long long T, mpz_int A, const long long B, mp
 					Bi_NUM = NUMcopy;    
 					Bi_DEN = DENcopy;  
 					//std::cout << "**temp SolContFrac exit(1)\n";
-					assert(_CrtCheckMemory());
 					return;
 				}
 				printf(". \n");
@@ -1148,7 +1142,6 @@ void SolContFrac(const mpz_int &H, long long T, mpz_int A, const long long B, mp
 	}   // end of for loop
 
 	//std::cout << "**temp SolContFrac exit(11) \n";
-	assert(_CrtCheckMemory());
 }
 
 /* calculate base^exp mod (Mod)*/

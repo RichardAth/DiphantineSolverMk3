@@ -74,6 +74,20 @@ unsigned long long int max_prime = 100000000;  // arbitrary limit,
 //void w(std::string texto) {
 //	std::cout << texto;
 //}
+void CheckForLeaks(void) {
+#ifdef _DEBUG
+	_CrtMemCheckpoint(&memState2); /* check for memory leakage*/
+	if (_CrtMemDifference(&memStatDiff, &memState1, &memState2)) {
+		/* Heap memory state has changed. may be a memory leak */
+		std::cerr << "** there seems to have been a memory leak";
+		_CrtMemDumpStatistics(&memStatDiff);  // show changes
+		//_CrtMemDumpAllObjectsSince(&memState1);
+		//_CrtDumpMemoryLeaks();
+		_CrtMemCheckpoint(&memState1);   // update checkpoint;
+	}
+
+#endif
+}
 
 /* calculate integer square root */
 unsigned long long llSqrt(unsigned long long num) {
@@ -991,11 +1005,11 @@ mpz_int DivideGcd(mpz_int P, mpz_int Q, mpz_int R, mpz_int S,
 //	else return -1;
 //}
 
-int Comparev(const void * Bi_array, const mpz_t &Bi_K1) {
-	mpz_t tempZ;
-	memcpy(tempZ, Bi_array, sizeof(mpz_t));
-	return mpz_cmp(tempZ, Bi_K1);
-}
+//int Comparev(const void * Bi_array, const mpz_t &Bi_K1) {
+//	mpz_t tempZ;
+//	memcpy(tempZ, Bi_array, sizeof(mpz_t));
+//	return mpz_cmp(tempZ, Bi_K1);
+//}
 
 /* class used to store solutions to equation. Operator < is overloaded so that 
 STL functions can handle this class without defining a special compare function. */
@@ -1158,7 +1172,67 @@ output is 'prettied up' by:
 2.	if Xi =0 & X1 NE 0 don't print 'xi +' i.e just print x = X1*t 
 3. if value of X1 is +/- 1 just print x = Xi +/-t without the digit 1.
 4. same rules apply for y */
- void PrintLinear(mpz_int Xi, mpz_int Xl, mpz_int Yi, mpz_int Yl, const std::string &va) {
+void PrintLinear(long long Xi, long long Xl, long long Yi, long long Yl, const std::string &va) {
+	if (va == "t") {         // actually, va always = t
+		showAlso();
+	}
+
+	if (ExchXY) {
+		long long T = Xi; Xi = Yi; Yi = T;  /* swap Xi and Yi */
+		long long T2 = Xl; Xl = Yl; Yl = T2;            /* swap X1 and Y1 */
+	}
+
+	printf("x = ");
+	if (Xi == 0 && Xl == 0) {
+		printf("0");  // print x = 0
+	}
+	else {
+		if (Xi != 0) {
+			std::cout << Xi;
+		}
+		if (Xl < 0) {
+			printf(" - ");
+		}
+		if (Xl > 0 && Xi != 0) {
+			printf(" + ");
+		}
+		if (Xl != 0) {
+			if (abs(Xl) == 1) {
+				std::cout << " " << va;
+			}
+			else {
+				std::cout << abs(Xl) << va;
+			}
+		}
+	}
+
+	printf("   y = ");
+	if (Yi == 0 && Yl == 0) {
+		printf("0");
+	}
+	else {
+		if (Yi != 0) {
+			std::cout << Yi;
+		}
+		if (Yl < 0) {
+			printf(" - ");
+		}
+		if (Yl > 0 && Yi != 0) {
+			printf(" + ");
+		}
+		if (Yl != 0) {
+			if (abs(Yl) == 1) {
+				std::cout << " " << va;
+			}
+			else {
+				std::cout << abs(Yl) << va;
+			}
+		}
+	}
+	putchar('\n');
+	return;
+}
+void PrintLinear(mpz_int Xi, mpz_int Xl, mpz_int Yi, mpz_int Yl, const std::string &va) {
 	if (va == "t") {         // actually, va always = t
 		showAlso();
 	}
@@ -2308,7 +2382,7 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 	NbrSols = 0;
 	NbrCo = -1;
 	also = false;
-	gmp_randinit_default(state);  // seed random number generator
+	//gmp_randinit_default(state);  // seed random number generator
 
 	std::cout << "\nSolve Diophantine equation:   ";
 	ShowEq(ax2, bxy, cy2, dx, ey, f, "x", "y");
@@ -2587,14 +2661,19 @@ void solveEquation(const long long ax2, const long long bxy, const long long cy2
 	}
 
 	assert(_CrtCheckMemory());        /* check for heap corruption &  */
-
-	_CrtMemCheckpoint(&memState2); /* check for memory leakage*/
-	if (_CrtMemDifference(&memStatDiff, &memState1, &memState2)) {
-		/* Heap memory state has changed. may be a memory leak */
-		//std::cerr << "** there seems to have been a memory leak";
-		_CrtMemDumpStatistics(&memState2);  // show current state
-		//_CrtDumpMemoryLeaks();
-	}
+#ifdef _DEBUG
+	mpz_realloc2(ZT(g_CY1), 32);   // avoid spurious memory leak reports, as far as possible
+	mpz_realloc2(ZT(g_CY0), 32);
+	mpz_realloc2(ZT(g_A2), 32);
+	mpz_realloc2(ZT(g_B2), 32);
+	mpz_realloc2(ZT(Bi_Disc), 32);
+	mpz_realloc2(ZT(Bi_H1), 32);
+	mpz_realloc2(ZT(Bi_H2), 32);
+	mpz_realloc2(ZT(Bi_K2), 32);
+	mpz_realloc2(ZT(Bi_NUM), 32);
+	mpz_realloc2(ZT(Bi_DEN), 32);
+#endif
+	CheckForLeaks(); // check for memory leaks;
 }
 
 
