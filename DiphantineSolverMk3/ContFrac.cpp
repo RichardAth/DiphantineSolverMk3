@@ -4,16 +4,13 @@
 #include <safeint.h>
 #include "stdafx.h"
 
-// get access to the mpz_t inside  mpz_int a
-#define ZT(a) a.backend().data()
-
 const std::string sq = "^2";
-extern mpz_int Bi_H1, Bi_H2, Bi_K2;   // used by ContFrac
+extern bigint Bi_H1, Bi_H2, Bi_K2;   // used by ContFrac
 extern long long g_A, g_B, g_D;
-extern mpz_int Bi_NUM, Bi_DEN;       // values set by GetRoot
+extern bigint Bi_NUM, Bi_DEN;       // values set by GetRoot
 extern unsigned long long SqrtDisc;
-extern mpz_int g_CY1, g_CY0;     // used by ShowHomoSols & ContFrac
-extern mpz_int g_A2, g_B2;       // note: g_A2, g_B2 set by ContFrac, used in SolveEquation
+extern bigint g_CY1, g_CY0;     // used by ShowHomoSols & ContFrac
+extern bigint g_A2, g_B2;       // note: g_A2, g_B2 set by ContFrac, used in SolveEquation
 extern int NbrSols, NbrCo;
 extern bool teach;
 extern unsigned long long *primeList;
@@ -21,7 +18,7 @@ extern unsigned int prime_list_count;
 extern unsigned long long int primeListMax;
 
 int NbrEqs, EqNbr;
-mpz_int Bi_L1, Bi_L2;      // values placed here by ShowHomoSols, used by SolContFrac
+bigint Bi_L1, Bi_L2;      // values placed here by ShowHomoSols, used by SolContFrac
 std::string UU = "";
 std::string VU = "";
 std::string UL = "";
@@ -36,9 +33,9 @@ std::string FP = "";
 /*  Act = Prev * A2 + Act * B2;            */
 /*  Prev = Tmp;                            */
 /*******************************************/
-void NextConv(mpz_int *Bi_Prev, mpz_int *Bi_Act, const mpz_int &A1,
-	const mpz_int &A2, const mpz_int &B1, const mpz_int &B2) {
-	mpz_int t1, t2, tmp;
+void NextConv(bigint *Bi_Prev, bigint *Bi_Act, const bigint &A1,
+	const bigint &A2, const bigint &B1, const bigint &B2) {
+	bigint t1, t2, tmp;
 
 	/*std::cout << "**temp NextConv: Prev = " << *Bi_Prev;
 	std::cout << " Act ="<< *Bi_Act;
@@ -56,9 +53,9 @@ void NextConv(mpz_int *Bi_Prev, mpz_int *Bi_Act, const mpz_int &A1,
 
 /* uses global variables Bi_L1, Bi_L2, g_A, g_B, g_D, g_CY0, g_CY1
 values are returned in Bi_L1 and Bi_L2*/
-bool ShowHomoSols(const int type, const mpz_int &Bi_SHH, const mpz_int &Bi_SHK, 
-	const long long s, const mpz_int &T, const mpz_int &MagnifY, const std::string &eqX, 
-	const std::string &eqY, const mpz_int &F) {
+bool ShowHomoSols(const int type, const bigint &Bi_SHH, const bigint &Bi_SHK, 
+	const long long s, const bigint &T, const bigint &MagnifY, const std::string &eqX, 
+	const std::string &eqY, const bigint &F) {
 
 	/*std::cout << "**temp ShowHomoSols: s=" << s << "  T=" << T << "  MagnifY=" << MagnifY << "\n";
 	std::cout << "Bi_SHH=" << Bi_SHH;
@@ -186,16 +183,16 @@ bool ShowHomoSols(const int type, const mpz_int &Bi_SHH, const mpz_int &Bi_SHK,
 * uses global variables Bi_NUM, Bi_DEN, Bi_H1, Bi_H2, Bi_K2, NbrCo         *
 *     NbrEqs, Eqnbr, NbrSols, g_A2, g_B2, g_CY0, g_CY1, SqrtDisc           *
 ****************************************************************************/
-bool ContFrac(const mpz_int &Dp_A, int type, const int SqrtSign, const long long s, 
-	const mpz_int &T, mpz_int MagnifY, mpz_int A, const mpz_int &Disc, const mpz_int &F) {
+bool ContFrac(const bigint &Dp_A, int type, const int SqrtSign, const long long s, 
+	const bigint &T, bigint MagnifY, bigint A, const bigint &Disc, const bigint &F) {
 
 	/*std::cout << "**temp ContFrac: type=" << type << "  SqrtSign=" << SqrtSign << "  s=" << s;
 	std::cout << "  T=" << T << "  MagnifY=" << MagnifY << "  A=" << A << "\n";
 	std::cout << "Bi_NUM=" << Bi_NUM << "  Bi_DEN=" << Bi_DEN;
 	std::cout << " Disc=" << Disc << "\n";*/
-	mpz_int A1, B1, M, M1, BiTmp, Bi_K1;
+	bigint A1, B1, M, M1, BiTmp, Bi_K1;
 	long long Tmp;      
-	mpz_int Z, P, P1, Dp_P, Dp_M, Dp_Z, Dp_G, Dp_Mu, Dp_K, Dp_L, Dp_M1, Dp_P1, Dp_zz;
+	bigint Z, P, P1, Dp_P, Dp_M, Dp_Z, Dp_G, Dp_Mu, Dp_K, Dp_L, Dp_M1, Dp_P1, Dp_zz;
 	long long H1ModCY1 = 1, H2ModCY1 = 0, K1ModCY1 = 0, K2ModCY1 = 1;
 	bool Sols = true, secondDo = true;
 	int Conv;
@@ -415,7 +412,7 @@ bool ContFrac(const mpz_int &Dp_A, int type, const int SqrtSign, const long long
 							}
 						}
 						else {   // Paso != 2
-							mpz_int Tmp;
+							bigint Tmp;
 							if (type == 4) {
 								Tmp = H2ModCY1*T;
 								if ((Tmp - g_CY0) % g_CY1 == 0 || (Tmp + g_CY0) % g_CY1 == 0) {
@@ -553,7 +550,7 @@ bool ContFrac(const mpz_int &Dp_A, int type, const int SqrtSign, const long long
 						}
 						else {
 							if (type == 4) {
-								mpz_int Tmp;
+								bigint Tmp;
 								Tmp = H2ModCY1*T;
 								if ((Tmp - g_CY0) % g_CY1 == 0 || (Tmp + g_CY0) % g_CY1 == 0) {
 									Sols = true;
@@ -581,7 +578,7 @@ bool ContFrac(const mpz_int &Dp_A, int type, const int SqrtSign, const long long
 
 			Count++;
 			if (Count % 10000 == 0) {
-				std::cout << "Confrac: " << Count << " (Eq " << EqNbr << " of " << NbrEqs << ") ";
+				std::cout << "Contfrac: " << Count << " (Eq " << EqNbr << " of " << NbrEqs << ") ";
 				if (NbrSols > 0)
 					std::cout << NbrSols << " solution" ;
 				std::cout << (NbrSols <= 1 ? "\n" : "s\n");
@@ -659,7 +656,7 @@ bool ContFrac(const mpz_int &Dp_A, int type, const int SqrtSign, const long long
 * calls GetRoot which overwrites Bi_NUM, Bi_DEN                               *
 * uses global variables SqrtDisc
 ******************************************************************************/
-void SolContFrac(const mpz_int &H, long long T, mpz_int A, const long long B, mpz_int C,
+void SolContFrac(const bigint &H, long long T, bigint A, const long long B, bigint C,
 	std::string SCFstr) {
 	/* would be better to use vectors rather than fixed length arrays */
 	long long factor[64] = { 0 };
@@ -669,11 +666,11 @@ void SolContFrac(const mpz_int &H, long long T, mpz_int A, const long long B, mp
 	long long mod[64] = { 0 };
 	long long pos[64] = { 0 };
 	long long SqrtDiscCopy = SqrtDisc, Modulo, dif, Pp, q, s, t, v, Sol1, Sol2;
-	mpz_int NUMcopy, DENcopy, ValF, F, BiTmp;
-	mpz_int Disc;
+	bigint NUMcopy, DENcopy, ValF, F, BiTmp;
+	bigint Disc;
 	long long VarD, VarK, VarQ, VarR, VarV, VarW, VarX, VarY, VarY1;
-	mpz_int gcdAF, Dp_A, Dp_B, Dp_C, Dp_R, Dp_S, Dp_T, MagnifY;
-	mpz_int Bi_Xcopy, Bi_Ycopy, OrigA, ValA, ValAM, ValB, ValBM, OrigC, ValC, ValCM;
+	bigint gcdAF, Dp_A, Dp_B, Dp_C, Dp_R, Dp_S, Dp_T, MagnifY;
+	bigint Bi_Xcopy, Bi_Ycopy, OrigA, ValA, ValAM, ValB, ValBM, OrigC, ValC, ValCM;
 	int cont;
 	unsigned int index, index2, NbrFactors;
 	int cuenta = 0;
@@ -790,8 +787,8 @@ void SolContFrac(const mpz_int &H, long long T, mpz_int A, const long long B, mp
 			ValCM = (ValC + Modulo) % Modulo;
 
 			if (ValAM == 0) {  /* Linear equation: sol=-C/B */
-				mpz_int t1 = Modulo - ValCM;
-				mpz_int t2;
+				bigint t1 = Modulo - ValCM;
+				bigint t2;
 				ModInv(&t2, ValBM, Modulo);  // t2 = modular inverse of BM
 				Sol1 = Sol2 = MultMod(t1, t2, Modulo);
 			}
@@ -1184,8 +1181,8 @@ long long ModInv(const long long Val, const long long Mod) {
 	}
 	return (U1 + Mod) % Mod;
 }
-void ModInv(mpz_int* op, const mpz_int &Val, const mpz_int &Mod) {
-	mpz_int rv;
+void ModInv(bigint* op, const bigint &Val, const bigint &Mod) {
+	bigint rv;
 
 	int ok = mpz_invert(ZT(rv), ZT(Val), ZT(Mod));
 	if (ok != 0) {
@@ -1200,7 +1197,7 @@ void ModInv(mpz_int* op, const mpz_int &Val, const mpz_int &Mod) {
 /* Calculate Num1*Num2 mod Mod.
 /* removes overflow risk. sign of result is same as sign of Num1*Num2 */
 long long MultMod(long long Num1, long long Num2, long long Mod) {
-	mpz_int N1, Prod;
+	bigint N1, Prod;
 	long long x;
 
 	Mod = abs(Mod);   // ensure Mod is +ve 
@@ -1210,8 +1207,8 @@ long long MultMod(long long Num1, long long Num2, long long Mod) {
 	x = MulPrToLong(Prod);   // magnitude of Prod  < Mod, therfore cannot overflow.
 	return x;
 }
-long long MultMod(const mpz_int &Num1, const mpz_int &Num2, mpz_int Mod) {
-	mpz_int Prod;
+long long MultMod(const bigint &Num1, const bigint &Num2, bigint Mod) {
+	bigint Prod;
 	long long x;
 
 	Mod = abs(Mod);   // ensure Mod is +ve 

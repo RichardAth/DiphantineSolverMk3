@@ -10,52 +10,51 @@ const long long quintillion = Bill*Bill;  // one quintillion = 10^18
 /* now using boost miltiprecision library as well as MPIR to handle bigints. 
 see http://www.boost.org/doc/libs/1_65_1/libs/multiprecision/doc/html/boost_multiprecision */
 
-/* putting the using namespace in the header file is considered bad practice,
-but not putting it here would prevent the mpz_int type integers in the declarations
-below from compiling.*/
-using namespace boost::multiprecision;
+typedef boost::multiprecision::mpz_int bigint;
+/* access underlying mpz_t inside an bigint */
+#define ZT(a) a.backend().data()
 
-/* functions that use bigints (mpz_int)*/
+/* functions that use bigints (mpz_t AKA mpz_int)*/
 
-void ShowLargeXY(const std::string &x, const std::string &y, const mpz_int &Bi_H1, const mpz_int &Bi_K1,
+void ShowLargeXY(const std::string &x, const std::string &y, const bigint &Bi_H1, const bigint &Bi_K1,
 	bool sol, const std::string &eqX, const std::string &eqY);
-bool ShowHomoSols(const int type, const mpz_int &H1, const mpz_int &K1, long long s, const mpz_int &T,
-	const mpz_int &MagnifY, const std::string &eqX, const std::string &eqY, const mpz_int &F);
-void ShowLargeNumber(const mpz_int &Bi_Nbr);
-long long DivLargeNumberRem(const mpz_int &Bi_Nbr, long long Coef, mpz_int *Bi_Dest);
-long long tDivLargeNumber(const mpz_int &n, const mpz_int &d, mpz_int &q);
-long long MulPrToLong(const mpz_int &x);
-long long DivLargeNumberLL(const mpz_int &Dp_Dividend, const mpz_int &Dp_Divisor);
-void DivLargeNumber(const mpz_int &Dp_Dividend, const mpz_int &Dp_Divisor, mpz_int *Dp_Quotient);
-void gcd(const mpz_int &Dp_Nbr1, const mpz_int &Dp_Nbr2, mpz_int &Dp_Gcd);
+bool ShowHomoSols(const int type, const bigint &H1, const bigint &K1, long long s, const bigint &T,
+	const bigint &MagnifY, const std::string &eqX, const std::string &eqY, const bigint &F);
+void ShowLargeNumber(const bigint &Bi_Nbr);
+long long DivLargeNumberRem(const bigint &Bi_Nbr, long long Coef, bigint *Bi_Dest);
+long long tDivLargeNumber(const bigint &n, const bigint &d, bigint &q);
+long long MulPrToLong(const bigint &x);
+long long DivLargeNumberLL(const bigint &Dp_Dividend, const bigint &Dp_Divisor);
+void DivLargeNumber(const bigint &Dp_Dividend, const bigint &Dp_Divisor, bigint *Dp_Quotient);
+void gcd(const bigint &Dp_Nbr1, const bigint &Dp_Nbr2, bigint &Dp_Gcd);
 long long gcd(long long M, long long N);    // same name, does same job, but for normal integers
-std::string numToStr(const mpz_int &Dp_Nbr);
+std::string numToStr(const bigint &Dp_Nbr);
 std::string numToStr(long long num);        // same name, does same job, but for normal integers
 
 
 /* other functions that need a separate declaration */
 
 std::string par(long long num);
-std::string par(const mpz_int &num);
+std::string par(const bigint &num);
 void ShowLin(long long D, long long E, long long F, std::string x, std::string y);
-void ShowLin(mpz_int D, mpz_int E, mpz_int F, std::string x, std::string y);
-bool ContFrac(const mpz_int &Dp_A, int type, int SqrtSign, long long s, const mpz_int &T,
-	mpz_int MagnifY, mpz_int A, const mpz_int &Disc, const mpz_int &F);
+void ShowLin(bigint D, bigint E, bigint F, std::string x, std::string y);
+bool ContFrac(const bigint &Dp_A, int type, int SqrtSign, long long s, const bigint &T,
+	bigint MagnifY, bigint A, const bigint &Disc, const bigint &F);
 void ShowAllLargeSolutions();
-void ShowEq(const mpz_int A, const mpz_int B, const mpz_int C, const mpz_int D, 
-	const mpz_int E, const mpz_int F, std::string x, std::string y);
-void SolContFrac(const mpz_int &H, long long T, mpz_int A, const long long B, mpz_int C, 
+void ShowEq(const bigint A, const bigint B, const bigint C, const bigint D, 
+	const bigint E, const bigint F, std::string x, std::string y);
+void SolContFrac(const bigint &H, long long T, bigint A, const long long B, bigint C, 
 	std::string SCFstr);
 
 long long MultMod(long long factor1, long long factor2, long long Mod);
-long long MultMod(const mpz_int &factor1, const mpz_int &factor2, mpz_int Mod);
+long long MultMod(const bigint &factor1, const bigint &factor2, bigint Mod);
 long long ModInv(const long long Val, const long long Mod);
-void ModInv(mpz_int* op, const mpz_int &Val, const mpz_int &Mod);
+void ModInv(bigint* op, const bigint &Val, const bigint &Mod);
 long long ModPow(long long Base, long long Exp, long long Mod);
-void ShowBigEq(const mpz_int &Dp_A, const mpz_int &Dp_B, const mpz_int &Dp_C, 
+void ShowBigEq(const bigint &Dp_A, const bigint &Dp_B, const bigint &Dp_C, 
 	const std::string &x, const std::string &y);
-void GetRoot(const mpz_int &Dp_A, const mpz_int &Dp_B, const mpz_int &Dp_C, mpz_int *Disc);
-//int Compare(const mpz_int Bi_array, const mpz_int Bi_K1);
+void GetRoot(const bigint &Dp_A, const bigint &Dp_B, const bigint &Dp_C, bigint *Disc);
+//int Compare(const bigint Bi_array, const bigint Bi_K1);
 void adjustGandK(long long &G, long long &K);
 
 /* enumerated variable used to classify type of equation */
